@@ -34,6 +34,7 @@ class _SplashPageState extends State<SplashPage>
               setState(() {});
               _videoController.play();
               _videoController.setLooping(true);
+              _videoController.setVolume(100.0);
             }
           });
 

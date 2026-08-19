@@ -36,6 +36,7 @@ dependencies:
   go_router: ^14.2.1
   google_fonts: ^6.2.1
   video_player: ^2.14.0
+  persistent_bottom_nav_bar: ^6.2.1
 
 dev_dependencies:
   flutter_test:
@@ -63,10 +64,18 @@ flutter:
     - assets/videos/splashscreenBG.mp4
     - assets/videos/onboaridng1.mp4
     - assets/videos/onboarding2.mp4
+    - assets/videos/homescreenbg.mp4
     - assets/images/logo/logo.png
     - assets/images/logo/getstartedlogo.png
     - assets/images/background/getstartedbg.png
+    - assets/images/background/home_bg.png
     - assets/images/Component/loading.png
+    - assets/images/Component/kundalibutton.png
+    - assets/images/Component/kundalimatchingbutton.png
+    - assets/images/Component/jupitar.png
+    - assets/images/Component/rashichakra.png
+    - assets/images/Component/nomangaldosha.png
+    - assets/images/Component/sadesati.png
 
 
 

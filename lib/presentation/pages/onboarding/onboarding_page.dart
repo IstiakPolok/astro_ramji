@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import 'package:video_player/video_player.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../../providers/onboarding_provider.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_text_styles.dart';
@@ -30,6 +31,8 @@ class _OnboardingViewState extends State<OnboardingView> {
   late VideoPlayerController _videoController2;
   bool _isVideo1Initialized = false;
   bool _isVideo2Initialized = false;
+  bool _video1Completed = false;
+  bool _video2Completed = false;
 
   @override
   void initState() {
@@ -41,7 +44,7 @@ class _OnboardingViewState extends State<OnboardingView> {
               setState(() {
                 _isVideo1Initialized = true;
               });
-              _videoController1.setLooping(true);
+              _videoController1.setLooping(false);
               _videoController1.setVolume(0.0);
               _videoController1.play();
             }
@@ -54,18 +57,57 @@ class _OnboardingViewState extends State<OnboardingView> {
               setState(() {
                 _isVideo2Initialized = true;
               });
-              _videoController2.setLooping(true);
+              _videoController2.setLooping(false);
               _videoController2.setVolume(0.0);
             }
           });
+
+    _setupVideoListeners();
+  }
+
+  void _setupVideoListeners() {
+    _videoController1.addListener(() {
+      if (!mounted) return;
+      final value = _videoController1.value;
+      if (value.isInitialized &&
+          value.position >= value.duration &&
+          !_video1Completed) {
+        _video1Completed = true;
+        final provider = Provider.of<OnboardingProvider>(
+          context,
+          listen: false,
+        );
+        provider.nextPage(() {});
+        _handlePageChange(1);
+      }
+    });
+
+    _videoController2.addListener(() {
+      if (!mounted) return;
+      final value = _videoController2.value;
+      if (value.isInitialized &&
+          value.position >= value.duration &&
+          !_video2Completed) {
+        _video2Completed = true;
+        context.go('/welcome');
+      }
+    });
   }
 
   void _handlePageChange(int index) {
     if (index == 0) {
-      if (_isVideo1Initialized) _videoController1.play();
+      _video1Completed = false;
+      if (_isVideo1Initialized) {
+        _videoController1.seekTo(Duration.zero);
+        _videoController1.play();
+      }
       _videoController2.pause();
     } else if (index == 1) {
-      if (_isVideo2Initialized) _videoController2.play();
+      _video2Completed = false;
+      if (_isVideo2Initialized) {
+        _videoController2.seekTo(Duration.zero);
+        _videoController2.play();
+      }
       _videoController1.pause();
     }
   }
@@ -214,32 +256,33 @@ class _OnboardingViewState extends State<OnboardingView> {
               children: [
                 TextSpan(
                   text: 'DISCOVER\n',
-                  style: AppTextStyles.headline.copyWith(
+                  style: GoogleFonts.cinzel(
                     color: Colors.white,
-                    fontWeight: FontWeight.w900,
+                    fontWeight: FontWeight.w700,
                     fontSize: 30,
+                    height: 37 / 30, // line-height: 45px
                   ),
                 ),
                 TextSpan(
                   text: 'WHAT THE STARS\nREVEAL',
-                  style: AppTextStyles.headline.copyWith(
+                  style: GoogleFonts.cinzel(
                     color: AppColors.goldPrimary,
-                    fontWeight: FontWeight.w900,
+                    fontWeight: FontWeight.w700,
                     fontSize: 30,
+                    height: 37 / 30, // line-height: 45px
                   ),
                 ),
               ],
             ),
             textAlign: TextAlign.center,
-            style: const TextStyle(height: 1.3, fontSize: 36),
           ),
           const SizedBox(height: 16),
           Text(
             'Guiding You Through the\nstars, every day',
             textAlign: TextAlign.center,
-            style: AppTextStyles.subheadline.copyWith(
+            style: GoogleFonts.roboto(
               color: AppColors.goldOrange,
-              fontWeight: FontWeight.bold,
+
               fontSize: 18,
             ),
           ),
@@ -263,33 +306,34 @@ class _OnboardingViewState extends State<OnboardingView> {
             TextSpan(
               children: [
                 TextSpan(
-                  text: 'DISCOVER\n',
-                  style: AppTextStyles.headline.copyWith(
+                  text: 'EXPLORE\n',
+                  style: GoogleFonts.cinzel(
                     color: Colors.white,
-                    fontWeight: FontWeight.w900,
+                    fontWeight: FontWeight.w700,
                     fontSize: 30,
+                    height: 37 / 30,
                   ),
                 ),
                 TextSpan(
-                  text: 'WHAT THE STARS\nREVEAL',
-                  style: AppTextStyles.headline.copyWith(
+                  text: 'the secrets written in the stars',
+                  style: GoogleFonts.cinzel(
                     color: AppColors.goldPrimary,
-                    fontWeight: FontWeight.w900,
+                    fontWeight: FontWeight.w700,
                     fontSize: 30,
+                    height: 37 / 30,
                   ),
                 ),
               ],
             ),
             textAlign: TextAlign.center,
-            style: const TextStyle(height: 1.3, fontSize: 36),
           ),
           const SizedBox(height: 16),
           Text(
             'Guiding You Through the\nstars, every day',
             textAlign: TextAlign.center,
-            style: AppTextStyles.subheadline.copyWith(
+            style: GoogleFonts.roboto(
               color: AppColors.goldOrange,
-              fontWeight: FontWeight.bold,
+
               fontSize: 18,
             ),
           ),

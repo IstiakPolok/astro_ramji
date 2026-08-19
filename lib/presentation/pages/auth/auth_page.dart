@@ -1,16 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../../providers/auth_provider.dart';
 import '../../../domain/usecases/login_usecase.dart';
 import '../../../data/repositories/auth_repository_impl.dart';
 import '../../../core/constants/app_colors.dart';
-import '../../../core/constants/app_text_styles.dart';
 import '../../widgets/custom_button.dart';
 import '../../widgets/custom_text_field.dart';
 
 class AuthPage extends StatefulWidget {
-  const AuthPage({super.key});
+  final String initialTab;
+  const AuthPage({super.key, this.initialTab = 'login'});
 
   @override
   State<AuthPage> createState() => _AuthPageState();
@@ -20,13 +21,23 @@ class _AuthPageState extends State<AuthPage> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-  
-  bool _isLoginTab = true;
+  final _fullNameController = TextEditingController();
+  final _phoneController = TextEditingController();
+
+  late bool _isLoginTab;
+
+  @override
+  void initState() {
+    super.initState();
+    _isLoginTab = widget.initialTab == 'login';
+  }
 
   @override
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
+    _fullNameController.dispose();
+    _phoneController.dispose();
     super.dispose();
   }
 
@@ -46,17 +57,18 @@ class _AuthPageState extends State<AuthPage> {
             backgroundColor: AppColors.spaceDark,
             body: Stack(
               children: [
-                // Faint Om Symbol in background
-                Positioned(
-                  right: -80,
-                  bottom: 80,
-                  child: Opacity(
-                    opacity: 0.04,
-                    child: Text(
-                      'ॐ',
-                      style: TextStyle(
-                        fontSize: 400,
-                        color: AppColors.goldLight,
+                // Watermark Om Symbol in background (Mockup style)
+                Positioned.fill(
+                  child: Align(
+                    alignment: const Alignment(0.0, 0.7),
+                    child: Opacity(
+                      opacity: 0.05,
+                      child: Text(
+                        'ॐ',
+                        style: GoogleFonts.cinzel(
+                          fontSize: 320,
+                          color: AppColors.goldPrimary,
+                        ),
                       ),
                     ),
                   ),
@@ -64,7 +76,10 @@ class _AuthPageState extends State<AuthPage> {
                 SafeArea(
                   child: SingleChildScrollView(
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 30.0, vertical: 16.0),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 30.0,
+                        vertical: 16.0,
+                      ),
                       child: Form(
                         key: _formKey,
                         child: Column(
@@ -72,6 +87,8 @@ class _AuthPageState extends State<AuthPage> {
                           children: [
                             // Back Button
                             IconButton(
+                              alignment: Alignment.centerLeft,
+                              padding: EdgeInsets.zero,
                               onPressed: () => context.pop(),
                               icon: const Icon(
                                 Icons.chevron_left,
@@ -80,12 +97,12 @@ class _AuthPageState extends State<AuthPage> {
                               ),
                             ),
                             const SizedBox(height: 24),
-                            // Header
+                            // Header Title
                             Text(
                               _isLoginTab ? 'WELCOME BACK' : 'CREATE ACCOUNT',
-                              style: AppTextStyles.serifHeader(
-                                fontSize: 28,
-                                fontWeight: FontWeight.bold,
+                              style: GoogleFonts.cinzel(
+                                fontSize: 32,
+                                fontWeight: FontWeight.w700,
                                 color: Colors.white,
                               ),
                             ),
@@ -94,33 +111,72 @@ class _AuthPageState extends State<AuthPage> {
                             Text(
                               _isLoginTab
                                   ? 'Sign in to continue your cosmic journey'
-                                  : 'Join us to discover your astrological destiny',
-                              style: AppTextStyles.sansBody(
+                                  : 'Begin your Vedic journey today',
+                              style: GoogleFonts.roboto(
                                 color: AppColors.textSecondary,
+                                fontSize: 14,
                               ),
                             ),
                             const SizedBox(height: 36),
                             // Toggle Tabs (Login / Sign Up)
                             _buildToggleTabs(),
                             const SizedBox(height: 36),
+
+                            // Input fields based on active tab
+                            if (!_isLoginTab) ...[
+                              // Full Name Field (Sign Up only)
+                              CustomTextField(
+                                label: 'Full Name',
+                                hintText: 'Aarav Sharma',
+                                controller: _fullNameController,
+                                validator: (val) {
+                                  if (val == null || val.isEmpty) {
+                                    return 'Please enter your name';
+                                  }
+                                  return null;
+                                },
+                              ),
+                              const SizedBox(height: 20),
+                            ],
+
                             // Email Field
                             CustomTextField(
                               label: 'Email',
-                              hintText: 'yourname@example.com',
+                              hintText: 'you@example.com',
                               controller: _emailController,
                               keyboardType: TextInputType.emailAddress,
                               validator: (val) {
-                                if (val == null || val.isEmpty || !val.contains('@')) {
+                                if (val == null ||
+                                    val.isEmpty ||
+                                    !val.contains('@')) {
                                   return 'Please enter a valid email';
                                 }
                                 return null;
                               },
                             ),
                             const SizedBox(height: 20),
+
+                            if (!_isLoginTab) ...[
+                              // Phone Field (Sign Up only)
+                              CustomTextField(
+                                label: 'Phone',
+                                hintText: '+91 98765 43210',
+                                controller: _phoneController,
+                                keyboardType: TextInputType.phone,
+                                validator: (val) {
+                                  if (val == null || val.isEmpty) {
+                                    return 'Please enter your phone number';
+                                  }
+                                  return null;
+                                },
+                              ),
+                              const SizedBox(height: 20),
+                            ],
+
                             // Password Field
                             CustomTextField(
                               label: 'Password',
-                              hintText: '********',
+                              hintText: '••••••••',
                               controller: _passwordController,
                               obscureText: true,
                               validator: (val) {
@@ -131,22 +187,21 @@ class _AuthPageState extends State<AuthPage> {
                               },
                             ),
                             const SizedBox(height: 12),
+
                             // Forgot Password Link (only in Login)
                             if (_isLoginTab)
                               Align(
                                 alignment: Alignment.centerRight,
                                 child: TextButton(
                                   onPressed: () {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(content: Text('Password reset link sent to your email')),
-                                    );
+                                    context.push('/forgot-password');
                                   },
                                   child: Text(
                                     'Forgot password?',
-                                    style: AppTextStyles.sansBody(
-                                      color: AppColors.goldPrimary,
-                                      fontWeight: FontWeight.w600,
-                                      fontSize: 12,
+                                    style: GoogleFonts.roboto(
+                                      color: AppColors.goldOrange,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 14,
                                     ),
                                   ),
                                 ),
@@ -156,13 +211,18 @@ class _AuthPageState extends State<AuthPage> {
                             if (authProvider.errorMessage != null) ...[
                               Text(
                                 authProvider.errorMessage!,
-                                style: const TextStyle(color: Colors.redAccent, fontSize: 13),
+                                style: const TextStyle(
+                                  color: Colors.redAccent,
+                                  fontSize: 13,
+                                ),
                               ),
                               const SizedBox(height: 16),
                             ],
                             // Action Button
                             CustomButton(
-                              text: _isLoginTab ? 'SIGN IN \u2794' : 'SIGN UP \u2794',
+                              text: _isLoginTab
+                                  ? 'SIGN IN \u2794'
+                                  : 'CREATE ACCOUNT \u2794',
                               isLoading: authProvider.isLoading,
                               onPressed: () async {
                                 if (_formKey.currentState!.validate()) {
@@ -182,11 +242,13 @@ class _AuthPageState extends State<AuthPage> {
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       SnackBar(
                                         content: Text(
-                                          _isLoginTab ? 'Successfully signed in!' : 'Successfully registered!',
+                                          _isLoginTab
+                                              ? 'Successfully signed in!'
+                                              : 'Successfully registered!',
                                         ),
                                       ),
                                     );
-                                    // Navigate to homepage or show alert
+                                    context.go('/home');
                                   }
                                 }
                               },
@@ -195,15 +257,30 @@ class _AuthPageState extends State<AuthPage> {
                             // "or" Divider
                             Row(
                               children: [
-                                Expanded(child: Divider(color: AppColors.borderDark, thickness: 1.5)),
-                                Padding(
-                                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                                  child: Text(
-                                    'or',
-                                    style: AppTextStyles.sansBody(color: AppColors.textMuted),
+                                const Expanded(
+                                  child: Divider(
+                                    color: AppColors.borderDark,
+                                    thickness: 1.5,
                                   ),
                                 ),
-                                Expanded(child: Divider(color: AppColors.borderDark, thickness: 1.5)),
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 16.0,
+                                  ),
+                                  child: Text(
+                                    'or',
+                                    style: GoogleFonts.roboto(
+                                      color: AppColors.textMuted,
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                ),
+                                const Expanded(
+                                  child: Divider(
+                                    color: AppColors.borderDark,
+                                    thickness: 1.5,
+                                  ),
+                                ),
                               ],
                             ),
                             const SizedBox(height: 24),
@@ -211,11 +288,15 @@ class _AuthPageState extends State<AuthPage> {
                             Center(
                               child: InkWell(
                                 onTap: () async {
-                                  final success = await authProvider.loginWithGoogle();
+                                  final success = await authProvider
+                                      .loginWithGoogle();
                                   if (success && mounted) {
                                     ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(content: Text('Signed in with Google!')),
+                                      const SnackBar(
+                                        content: Text('Signed in with Google!'),
+                                      ),
                                     );
+                                    context.go('/home');
                                   }
                                 },
                                 borderRadius: BorderRadius.circular(28),
@@ -225,15 +306,17 @@ class _AuthPageState extends State<AuthPage> {
                                   decoration: BoxDecoration(
                                     shape: BoxShape.circle,
                                     color: AppColors.cardDark,
-                                    border: Border.all(color: AppColors.borderDark, width: 1.5),
+                                    border: Border.all(
+                                      color: AppColors.borderDark,
+                                      width: 1.5,
+                                    ),
                                   ),
                                   alignment: Alignment.center,
                                   child: Image.network(
-                                    'https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg',
-                                    width: 24,
-                                    height: 24,
+                                    'https://img.icons8.com/color/48/google-logo.png',
+                                    width: 28,
+                                    height: 28,
                                     errorBuilder: (context, error, stackTrace) {
-                                      // Fallback letter if image fail or offline
                                       return const Text(
                                         'G',
                                         style: TextStyle(
@@ -263,10 +346,10 @@ class _AuthPageState extends State<AuthPage> {
 
   Widget _buildToggleTabs() {
     return Container(
-      height: 48,
+      height: 56,
       decoration: BoxDecoration(
         color: AppColors.cardDark,
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(color: AppColors.borderDark, width: 1.5),
       ),
       child: Row(
@@ -277,15 +360,16 @@ class _AuthPageState extends State<AuthPage> {
               onTap: () => setState(() => _isLoginTab = true),
               child: Container(
                 decoration: BoxDecoration(
-                  gradient: _isLoginTab ? AppColors.goldGradient : null,
-                  borderRadius: BorderRadius.circular(24),
+                  gradient: _isLoginTab ? AppColors.buttonGradient : null,
+                  borderRadius: BorderRadius.circular(16),
                 ),
                 alignment: Alignment.center,
                 child: Text(
-                  'Login',
-                  style: AppTextStyles.sansBody(
+                  'LOGIN',
+                  style: GoogleFonts.cinzel(
                     color: _isLoginTab ? Colors.black : AppColors.textSecondary,
-                    fontWeight: FontWeight.bold,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 16,
                   ),
                 ),
               ),
@@ -297,15 +381,18 @@ class _AuthPageState extends State<AuthPage> {
               onTap: () => setState(() => _isLoginTab = false),
               child: Container(
                 decoration: BoxDecoration(
-                  gradient: !_isLoginTab ? AppColors.goldGradient : null,
-                  borderRadius: BorderRadius.circular(24),
+                  gradient: !_isLoginTab ? AppColors.buttonGradient : null,
+                  borderRadius: BorderRadius.circular(16),
                 ),
                 alignment: Alignment.center,
                 child: Text(
-                  'Sign Up',
-                  style: AppTextStyles.sansBody(
-                    color: !_isLoginTab ? Colors.black : AppColors.textSecondary,
-                    fontWeight: FontWeight.bold,
+                  'SIGN UP',
+                  style: GoogleFonts.cinzel(
+                    color: !_isLoginTab
+                        ? Colors.black
+                        : AppColors.textSecondary,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 16,
                   ),
                 ),
               ),

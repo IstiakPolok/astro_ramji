@@ -63,7 +63,7 @@ class WelcomePage extends StatelessWidget {
                     CustomButton(
                       text: 'GET STARTED',
                       onPressed: () {
-                        context.push('/auth');
+                        context.push('/auth?tab=signup');
                       },
                     ),
                     const SizedBox(height: 16),
@@ -71,7 +71,7 @@ class WelcomePage extends StatelessWidget {
                       text: 'I already have an account',
                       isGradient: false,
                       onPressed: () {
-                        context.push('/auth');
+                        context.push('/auth?tab=login');
                       },
                     ),
                     const SizedBox(height: 12),

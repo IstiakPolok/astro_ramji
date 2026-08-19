@@ -51,9 +51,11 @@ class AppTextStyles {
     color: AppColors.textSecondary,
   );
 
-  static final TextStyle buttonText = sansBody(
-    fontSize: 15,
-    fontWeight: FontWeight.w600,
+  static final TextStyle buttonText = GoogleFonts.cinzel(
+    fontSize: 16,
+    fontWeight: FontWeight.w700,
+    height: 24 / 16, // 1.5
+    letterSpacing: 0,
     color: Colors.black,
   );
 

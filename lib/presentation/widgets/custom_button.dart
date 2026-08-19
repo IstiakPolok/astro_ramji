@@ -18,78 +18,88 @@ class CustomButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final buttonHeight = 54.0;
-    
+    final buttonHeight = 56.0;
+    final buttonWidth = 335.0;
+    final borderRadius = BorderRadius.circular(16);
+    const gradient = AppColors.buttonGradient;
+    final shadow = [
+      BoxShadow(
+        color: AppColors.buttonShadow,
+        blurRadius: 24,
+        offset: const Offset(0, 6),
+      ),
+    ];
+
     if (isLoading) {
-      return Container(
-        height: buttonHeight,
-        width: double.infinity,
-        alignment: Alignment.center,
-        decoration: isGradient
-            ? BoxDecoration(
-                gradient: AppColors.goldGradient,
-                borderRadius: BorderRadius.circular(27),
-              )
-            : BoxDecoration(
-                border: Border.all(color: AppColors.borderDark, width: 1.5),
-                borderRadius: BorderRadius.circular(27),
-              ),
-        child: const SizedBox(
-          height: 20,
-          width: 20,
-          child: CircularProgressIndicator(
-            color: Colors.black,
-            strokeWidth: 2,
+      return Center(
+        child: Container(
+          height: buttonHeight,
+          width: buttonWidth,
+          alignment: Alignment.center,
+          decoration: isGradient
+              ? BoxDecoration(
+                  gradient: gradient,
+                  borderRadius: borderRadius,
+                  boxShadow: shadow,
+                )
+              : BoxDecoration(
+                  border: Border.all(color: AppColors.borderDark, width: 1.5),
+                  borderRadius: borderRadius,
+                ),
+          child: const SizedBox(
+            height: 20,
+            width: 20,
+            child: CircularProgressIndicator(
+              color: Colors.black,
+              strokeWidth: 2,
+            ),
           ),
         ),
       );
     }
 
     if (isGradient) {
-      return Container(
-        height: buttonHeight,
-        width: double.infinity,
-        decoration: BoxDecoration(
-          gradient: AppColors.goldGradient,
-          borderRadius: BorderRadius.circular(27),
-          boxShadow: [
-            BoxShadow(
-              color: AppColors.goldPrimary.withOpacity(0.3),
-              blurRadius: 15,
-              offset: const Offset(0, 5),
-            ),
-          ],
-        ),
-        child: ElevatedButton(
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.transparent,
-            shadowColor: Colors.transparent,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(27),
-            ),
+      return Center(
+        child: Container(
+          height: buttonHeight,
+          width: buttonWidth,
+          decoration: BoxDecoration(
+            gradient: gradient,
+            borderRadius: borderRadius,
+            boxShadow: shadow,
           ),
-          onPressed: onPressed,
-          child: Text(
-            text,
-            style: AppTextStyles.buttonText,
+          child: ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.transparent,
+              shadowColor: Colors.transparent,
+              shape: RoundedRectangleBorder(borderRadius: borderRadius),
+            ),
+            onPressed: onPressed,
+            child: Text(text, style: AppTextStyles.buttonText),
           ),
         ),
       );
     } else {
-      return SizedBox(
-        height: buttonHeight,
-        width: double.infinity,
-        child: OutlinedButton(
-          style: OutlinedButton.styleFrom(
-            side: const BorderSide(color: AppColors.borderDark, width: 1.5),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(27),
+      return Center(
+        child: SizedBox(
+          height: buttonHeight,
+          width: buttonWidth,
+          child: OutlinedButton(
+            style: OutlinedButton.styleFrom(
+              side: BorderSide(
+                color: AppColors.goldPrimary.withValues(alpha: 0.3),
+                width: 1.5,
+              ),
+
+              shape: RoundedRectangleBorder(borderRadius: borderRadius),
             ),
-          ),
-          onPressed: onPressed,
-          child: Text(
-            text,
-            style: AppTextStyles.buttonText.copyWith(color: AppColors.textPrimary),
+            onPressed: onPressed,
+            child: Text(
+              text,
+              style: AppTextStyles.buttonText.copyWith(
+                color: AppColors.goldPrimary,
+              ),
+            ),
           ),
         ),
       );

@@ -9,7 +9,7 @@ class AppColors {
 
   // Gold / Orange Cosmic Gradients
   static const Color goldLight = Color(0xFFFFDF7A);
-  static const Color goldPrimary = Color(0xFFFEA703);
+  static const Color goldPrimary = Color(0xFFD4A827);
   static const Color goldOrange = Color(0xFFFF9B17);
 
   static const Gradient goldGradient = LinearGradient(
@@ -23,6 +23,14 @@ class AppColors {
     begin: Alignment.topCenter,
     end: Alignment.bottomCenter,
   );
+
+  static const Gradient buttonGradient = LinearGradient(
+    colors: [Color(0xFFD4A827), Color(0xFFE07820)],
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+  );
+
+  static const Color buttonShadow = Color(0x61D4A827);
 
   // Text Colors
   static const Color textPrimary = Color(0xFFF3EFE0);
