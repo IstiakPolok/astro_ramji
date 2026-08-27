@@ -3,6 +3,8 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../core/constants/app_colors.dart';
 import 'home/home_page.dart';
 import 'kundali/kundali_form_screen.dart';
+import 'matching/matching_screen.dart';
+import 'settings/settings_screen.dart';
 
 class MainNavigationScreen extends StatefulWidget {
   final int initialIndex;
@@ -33,24 +35,8 @@ class MainNavigationScreenState extends State<MainNavigationScreen> {
         ),
       ),
     ),
-    const Scaffold(
-      backgroundColor: AppColors.spaceDark,
-      body: Center(
-        child: Text(
-          'MATCHING SCREEN',
-          style: TextStyle(color: Colors.white, fontSize: 18),
-        ),
-      ),
-    ),
-    const Scaffold(
-      backgroundColor: AppColors.spaceDark,
-      body: Center(
-        child: Text(
-          'ACCOUNT SCREEN',
-          style: TextStyle(color: Colors.white, fontSize: 18),
-        ),
-      ),
-    ),
+    const MatchingScreen(),
+    const SettingsScreen(),
   ];
 
   @override

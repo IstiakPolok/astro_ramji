@@ -1636,8 +1636,9 @@ class _KundaliFormScreenState extends State<KundaliFormScreen>
                   width: double.infinity,
                   padding: const EdgeInsets.all(14),
                   decoration: BoxDecoration(
-                    color: Colors.black.withValues(alpha: 0.25),
+                    color: Colors.white.withValues(alpha: 0.03),
                     borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.white10, width: 1),
                   ),
                   child: Text(
                     'Anuradha nakshatra natives are devoted, cooperative, and deeply spiritual. They are natural leaders with excellent organizational ability and a gift for bringing harmony to complex situations.',
@@ -1808,9 +1809,9 @@ class _KundaliFormScreenState extends State<KundaliFormScreen>
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: const Color(0xFF141125).withValues(alpha: 0.85),
+        color: Colors.white.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.borderDark, width: 1.5),
+        border: Border.all(color: Colors.white24, width: 1.0),
       ),
       child: child,
     );
@@ -1839,10 +1840,10 @@ class _KundaliFormScreenState extends State<KundaliFormScreen>
       width: double.infinity,
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: const Color(0xFF0F0C24).withValues(alpha: 0.4),
+        color: Colors.white.withValues(alpha: 0.03),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: AppColors.borderDark.withValues(alpha: 0.5),
+          color: Colors.white10,
           width: 1,
         ),
       ),
