@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:video_player/video_player.dart';
 import '../../../core/constants/app_colors.dart';
+import '../main_navigation_screen.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -63,7 +64,7 @@ class _HomePageState extends State<HomePage> {
             ),
             // Dark overlay for readability
             Positioned.fill(
-              child: Container(color: Colors.black.withValues(alpha: 0.35)),
+              child: Container(color: Colors.black.withValues(alpha: 0.20)),
             ),
             SafeArea(
               bottom: false,
@@ -427,7 +428,11 @@ class _HomePageState extends State<HomePage> {
         // Generate Kundali (Green)
         Expanded(
           child: GestureDetector(
-            onTap: () {},
+            onTap: () {
+              context
+                  .findAncestorStateOfType<MainNavigationScreenState>()
+                  ?.setIndex(1);
+            },
             child: Image.asset(
               'assets/images/Component/kundalibutton.png',
               fit: BoxFit.contain,
@@ -438,7 +443,11 @@ class _HomePageState extends State<HomePage> {
         // Kundali Matching (Pink)
         Expanded(
           child: GestureDetector(
-            onTap: () {},
+            onTap: () {
+              context
+                  .findAncestorStateOfType<MainNavigationScreenState>()
+                  ?.setIndex(3);
+            },
             child: Image.asset(
               'assets/images/Component/kundalimatchingbutton.png',
               fit: BoxFit.contain,

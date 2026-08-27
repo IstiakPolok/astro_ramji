@@ -2,29 +2,28 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../core/constants/app_colors.dart';
 import 'home/home_page.dart';
+import 'kundali/kundali_form_screen.dart';
 
 class MainNavigationScreen extends StatefulWidget {
   final int initialIndex;
   const MainNavigationScreen({super.key, this.initialIndex = 0});
 
   @override
-  State<MainNavigationScreen> createState() => _MainNavigationScreenState();
+  State<MainNavigationScreen> createState() => MainNavigationScreenState();
 }
 
-class _MainNavigationScreenState extends State<MainNavigationScreen> {
+class MainNavigationScreenState extends State<MainNavigationScreen> {
   late int _currentIndex;
+
+  void setIndex(int index) {
+    setState(() {
+      _currentIndex = index;
+    });
+  }
 
   final List<Widget> _pages = [
     const HomePage(),
-    const Scaffold(
-      backgroundColor: AppColors.spaceDark,
-      body: Center(
-        child: Text(
-          'KUNDALI SCREEN',
-          style: TextStyle(color: Colors.white, fontSize: 18),
-        ),
-      ),
-    ),
+    const KundaliFormScreen(),
     const Scaffold(
       backgroundColor: AppColors.spaceDark,
       body: Center(
