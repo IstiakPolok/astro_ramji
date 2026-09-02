@@ -3,9 +3,11 @@ import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/theme_provider.dart';
 import '../../../domain/usecases/login_usecase.dart';
 import '../../../data/repositories/auth_repository_impl.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../core/constants/app_assets.dart';
 import '../../widgets/custom_button.dart';
 import '../../widgets/custom_text_field.dart';
 
@@ -43,6 +45,9 @@ class _AuthPageState extends State<AuthPage> {
 
   @override
   Widget build(BuildContext context) {
+    final themeProvider = Provider.of<ThemeProvider>(context);
+    final isDark = themeProvider.isDarkMode;
+
     final authRepository = AuthRepositoryImpl();
     final loginUseCase = LoginUseCase(authRepository);
 
@@ -54,20 +59,34 @@ class _AuthPageState extends State<AuthPage> {
       child: Consumer<AuthProvider>(
         builder: (context, authProvider, child) {
           return Scaffold(
-            backgroundColor: AppColors.spaceDark,
+            backgroundColor: AppColors.getBackground(isDark),
             body: Stack(
               children: [
-                // Watermark Om Symbol in background (Mockup style)
+                // In Light Mode: Light background with celestial art
+                if (!isDark)
+                  Positioned.fill(
+                    child: Image.asset(
+                      AppAssets.bgLight1,
+                      fit: BoxFit.cover,
+                    ),
+                  ),
+                if (!isDark)
+                  Positioned.fill(
+                    child: Container(
+                      color: Colors.white.withValues(alpha: 0.35),
+                    ),
+                  ),
+                // Watermark Om Symbol in background
                 Positioned.fill(
                   child: Align(
                     alignment: const Alignment(0.0, 0.7),
                     child: Opacity(
-                      opacity: 0.05,
+                      opacity: isDark ? 0.05 : 0.07,
                       child: Text(
                         'ॐ',
                         style: GoogleFonts.cinzel(
                           fontSize: 320,
-                          color: AppColors.goldPrimary,
+                          color: AppColors.getGold(isDark),
                         ),
                       ),
                     ),
@@ -90,9 +109,9 @@ class _AuthPageState extends State<AuthPage> {
                               alignment: Alignment.centerLeft,
                               padding: EdgeInsets.zero,
                               onPressed: () => context.pop(),
-                              icon: const Icon(
+                              icon: Icon(
                                 Icons.chevron_left,
-                                color: AppColors.goldPrimary,
+                                color: AppColors.getGold(isDark),
                                 size: 36,
                               ),
                             ),
@@ -103,7 +122,7 @@ class _AuthPageState extends State<AuthPage> {
                               style: GoogleFonts.cinzel(
                                 fontSize: 32,
                                 fontWeight: FontWeight.w700,
-                                color: Colors.white,
+                                color: isDark ? Colors.white : AppColors.textPrimaryLight,
                               ),
                             ),
                             const SizedBox(height: 8),
@@ -113,13 +132,13 @@ class _AuthPageState extends State<AuthPage> {
                                   ? 'Sign in to continue your cosmic journey'
                                   : 'Begin your Vedic journey today',
                               style: GoogleFonts.roboto(
-                                color: AppColors.textSecondary,
+                                color: AppColors.getTextSecondary(isDark),
                                 fontSize: 14,
                               ),
                             ),
                             const SizedBox(height: 36),
                             // Toggle Tabs (Login / Sign Up)
-                            _buildToggleTabs(),
+                            _buildToggleTabs(isDark),
                             const SizedBox(height: 36),
 
                             // Input fields based on active tab
@@ -238,7 +257,7 @@ class _AuthPageState extends State<AuthPage> {
                                       _passwordController.text.trim(),
                                     );
                                   }
-                                  if (success && mounted) {
+                                  if (success && context.mounted) {
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       SnackBar(
                                         content: Text(
@@ -257,9 +276,9 @@ class _AuthPageState extends State<AuthPage> {
                             // "or" Divider
                             Row(
                               children: [
-                                const Expanded(
+                                Expanded(
                                   child: Divider(
-                                    color: AppColors.borderDark,
+                                    color: isDark ? AppColors.borderDark : const Color(0x30D4A827),
                                     thickness: 1.5,
                                   ),
                                 ),
@@ -270,14 +289,14 @@ class _AuthPageState extends State<AuthPage> {
                                   child: Text(
                                     'or',
                                     style: GoogleFonts.roboto(
-                                      color: AppColors.textMuted,
+                                      color: AppColors.getTextMuted(isDark),
                                       fontSize: 14,
                                     ),
                                   ),
                                 ),
-                                const Expanded(
+                                Expanded(
                                   child: Divider(
-                                    color: AppColors.borderDark,
+                                    color: isDark ? AppColors.borderDark : const Color(0x30D4A827),
                                     thickness: 1.5,
                                   ),
                                 ),
@@ -290,7 +309,7 @@ class _AuthPageState extends State<AuthPage> {
                                 onTap: () async {
                                   final success = await authProvider
                                       .loginWithGoogle();
-                                  if (success && mounted) {
+                                  if (success && context.mounted) {
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       const SnackBar(
                                         content: Text('Signed in with Google!'),
@@ -305,11 +324,20 @@ class _AuthPageState extends State<AuthPage> {
                                   height: 56,
                                   decoration: BoxDecoration(
                                     shape: BoxShape.circle,
-                                    color: AppColors.cardDark,
+                                    color: isDark ? AppColors.cardDark : Colors.white,
                                     border: Border.all(
-                                      color: AppColors.borderDark,
+                                      color: isDark ? AppColors.borderDark : const Color(0x35D4A827),
                                       width: 1.5,
                                     ),
+                                    boxShadow: isDark
+                                        ? null
+                                        : [
+                                            BoxShadow(
+                                              color: Colors.black.withValues(alpha: 0.05),
+                                              blurRadius: 8,
+                                              offset: const Offset(0, 2),
+                                            ),
+                                          ],
                                   ),
                                   alignment: Alignment.center,
                                   child: Image.network(
@@ -317,10 +345,10 @@ class _AuthPageState extends State<AuthPage> {
                                     width: 28,
                                     height: 28,
                                     errorBuilder: (context, error, stackTrace) {
-                                      return const Text(
+                                      return Text(
                                         'G',
                                         style: TextStyle(
-                                          color: Colors.white,
+                                          color: isDark ? Colors.white : AppColors.textPrimaryLight,
                                           fontWeight: FontWeight.bold,
                                           fontSize: 18,
                                         ),
@@ -344,13 +372,25 @@ class _AuthPageState extends State<AuthPage> {
     );
   }
 
-  Widget _buildToggleTabs() {
+  Widget _buildToggleTabs(bool isDark) {
     return Container(
       height: 56,
       decoration: BoxDecoration(
-        color: AppColors.cardDark,
+        color: isDark ? AppColors.cardDark : const Color(0xF5FFFFFF),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.borderDark, width: 1.5),
+        border: Border.all(
+          color: isDark ? AppColors.borderDark : const Color(0x35D4A827),
+          width: 1.5,
+        ),
+        boxShadow: isDark
+            ? null
+            : [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.04),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
       ),
       child: Row(
         children: [
@@ -367,7 +407,9 @@ class _AuthPageState extends State<AuthPage> {
                 child: Text(
                   'LOGIN',
                   style: GoogleFonts.cinzel(
-                    color: _isLoginTab ? Colors.black : AppColors.textSecondary,
+                    color: _isLoginTab
+                        ? Colors.black
+                        : (isDark ? AppColors.textSecondary : AppColors.textSecondaryLight),
                     fontWeight: FontWeight.w700,
                     fontSize: 16,
                   ),
@@ -390,7 +432,7 @@ class _AuthPageState extends State<AuthPage> {
                   style: GoogleFonts.cinzel(
                     color: !_isLoginTab
                         ? Colors.black
-                        : AppColors.textSecondary,
+                        : (isDark ? AppColors.textSecondary : AppColors.textSecondaryLight),
                     fontWeight: FontWeight.w700,
                     fontSize: 16,
                   ),

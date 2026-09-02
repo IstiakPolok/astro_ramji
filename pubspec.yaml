@@ -69,6 +69,10 @@ flutter:
     - assets/images/logo/getstartedlogo.png
     - assets/images/background/getstartedbg.png
     - assets/images/background/home_bg.png
+    - assets/images/background/LIGHT.png
+    - assets/images/background/LIGHT2.png
+    - assets/images/background/LIGHT3.png
+    - assets/images/background/LIGHT4.png
     - assets/images/Component/loading.png
     - assets/images/Component/kundalibutton.png
     - assets/images/Component/kundalimatchingbutton.png

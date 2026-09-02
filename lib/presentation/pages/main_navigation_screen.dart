@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
 import '../../core/constants/app_colors.dart';
+import '../providers/theme_provider.dart';
 import 'home/home_page.dart';
 import 'kundali/kundali_form_screen.dart';
 import 'matching/matching_screen.dart';
 import 'settings/settings_screen.dart';
+import 'horoscope/horoscope_screen.dart';
 
 class MainNavigationScreen extends StatefulWidget {
   final int initialIndex;
@@ -26,15 +29,7 @@ class MainNavigationScreenState extends State<MainNavigationScreen> {
   final List<Widget> _pages = [
     const HomePage(),
     const KundaliFormScreen(),
-    const Scaffold(
-      backgroundColor: AppColors.spaceDark,
-      body: Center(
-        child: Text(
-          'FORECAST/SUN ACTION SCREEN',
-          style: TextStyle(color: Colors.white, fontSize: 18),
-        ),
-      ),
-    ),
+    const HoroscopeScreen(),
     const MatchingScreen(),
     const SettingsScreen(),
   ];
@@ -47,16 +42,39 @@ class MainNavigationScreenState extends State<MainNavigationScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final themeProvider = Provider.of<ThemeProvider>(context);
+    final isDark = themeProvider.isDarkMode;
+
     return Scaffold(
-      backgroundColor: AppColors.spaceDark,
+      backgroundColor: AppColors.getBackground(isDark),
       body: IndexedStack(index: _currentIndex, children: _pages),
-      bottomNavigationBar: _buildBottomNavigationBar(),
+      bottomNavigationBar: _buildBottomNavigationBar(isDark),
     );
   }
 
-  Widget _buildBottomNavigationBar() {
+  Widget _buildBottomNavigationBar(bool isDark) {
+    final activeColor = AppColors.getGold(isDark);
+    final inactiveColor = AppColors.getTextSecondary(isDark);
+
     return Container(
-      color: const Color(0xE505030A), // slightly transparent dark overlay
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xE505030A) : const Color(0xF2FFFFFF),
+        border: Border(
+          top: BorderSide(
+            color: isDark ? Colors.white12 : const Color(0x30D4A827),
+            width: 1,
+          ),
+        ),
+        boxShadow: isDark
+            ? null
+            : [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.05),
+                  blurRadius: 10,
+                  offset: const Offset(0, -2),
+                ),
+              ],
+      ),
       child: SafeArea(
         top: false,
         bottom: true,
@@ -66,14 +84,14 @@ class MainNavigationScreenState extends State<MainNavigationScreen> {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              _buildNavItem(0, Icons.home_outlined, 'HOME'),
-              _buildNavItem(1, Icons.auto_awesome_outlined, 'KUNDALI'),
+              _buildNavItem(0, Icons.home_outlined, 'HOME', isDark, activeColor, inactiveColor),
+              _buildNavItem(1, Icons.auto_awesome_outlined, 'KUNDALI', isDark, activeColor, inactiveColor),
 
               // Glowing Floating center sun button
               GestureDetector(
                 onTap: () {
                   setState(() {
-                    _currentIndex = 2; // Middle index
+                    _currentIndex = 2; // Middle index (Horoscope)
                   });
                 },
                 child: Transform.translate(
@@ -82,15 +100,15 @@ class MainNavigationScreenState extends State<MainNavigationScreen> {
                     width: 58,
                     height: 58,
                     decoration: BoxDecoration(
-                      color: Colors.black,
+                      color: isDark ? Colors.black : const Color(0xFFFFF9E6),
                       shape: BoxShape.circle,
                       border: Border.all(
-                        color: AppColors.goldPrimary,
+                        color: activeColor,
                         width: 2,
                       ),
                       boxShadow: [
                         BoxShadow(
-                          color: AppColors.goldPrimary.withValues(alpha: 0.4),
+                          color: AppColors.goldPrimary.withValues(alpha: isDark ? 0.4 : 0.25),
                           blurRadius: 15,
                           spreadRadius: 1,
                         ),
@@ -100,15 +118,15 @@ class MainNavigationScreenState extends State<MainNavigationScreen> {
                       Icons.wb_sunny_rounded,
                       color: _currentIndex == 2
                           ? AppColors.goldOrange
-                          : AppColors.goldPrimary,
+                          : activeColor,
                       size: 28,
                     ),
                   ),
                 ),
               ),
 
-              _buildNavItem(3, Icons.favorite_border_rounded, 'MATCHING'),
-              _buildNavItem(4, Icons.person_outline_rounded, 'ACCOUNT'),
+              _buildNavItem(3, Icons.favorite_border_rounded, 'MATCHING', isDark, activeColor, inactiveColor),
+              _buildNavItem(4, Icons.person_outline_rounded, 'ACCOUNT', isDark, activeColor, inactiveColor),
             ],
           ),
         ),
@@ -116,7 +134,14 @@ class MainNavigationScreenState extends State<MainNavigationScreen> {
     );
   }
 
-  Widget _buildNavItem(int index, IconData icon, String label) {
+  Widget _buildNavItem(
+    int index,
+    IconData icon,
+    String label,
+    bool isDark,
+    Color activeColor,
+    Color inactiveColor,
+  ) {
     final isSelected = _currentIndex == index;
     return GestureDetector(
       onTap: () {
@@ -129,16 +154,14 @@ class MainNavigationScreenState extends State<MainNavigationScreen> {
         children: [
           Icon(
             icon,
-            color: isSelected ? AppColors.goldPrimary : AppColors.textSecondary,
+            color: isSelected ? activeColor : inactiveColor,
             size: 24,
           ),
           const SizedBox(height: 4),
           Text(
             label,
             style: GoogleFonts.cinzel(
-              color: isSelected
-                  ? AppColors.goldPrimary
-                  : AppColors.textSecondary,
+              color: isSelected ? activeColor : inactiveColor,
               fontSize: 8,
               fontWeight: FontWeight.bold,
             ),

@@ -172,7 +172,7 @@ class _OnboardingViewState extends State<OnboardingView> {
             ),
             // Semi-transparent overlay to ensure content is readable over the videos
             Positioned.fill(
-              child: Container(color: Colors.black.withOpacity(0.3)),
+              child: Container(color: Colors.black.withValues(alpha: 0.3)),
             ),
             // Page content
             PageView(

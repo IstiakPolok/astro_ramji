@@ -3,7 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../core/constants/app_assets.dart';
+import '../../providers/theme_provider.dart';
 import '../../widgets/custom_button.dart';
 import '../../widgets/custom_text_field.dart';
 
@@ -82,21 +85,37 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
 
   @override
   Widget build(BuildContext context) {
+    final themeProvider = Provider.of<ThemeProvider>(context);
+    final isDark = themeProvider.isDarkMode;
+
     return Scaffold(
-      backgroundColor: AppColors.spaceDark,
+      backgroundColor: AppColors.getBackground(isDark),
       body: Stack(
         children: [
-          // Watermark Om Symbol in background (centered & slightly shifted down)
+          if (!isDark)
+            Positioned.fill(
+              child: Image.asset(
+                AppAssets.bgLight1,
+                fit: BoxFit.cover,
+              ),
+            ),
+          if (!isDark)
+            Positioned.fill(
+              child: Container(
+                color: Colors.white.withValues(alpha: 0.35),
+              ),
+            ),
+          // Watermark Om Symbol in background
           Positioned.fill(
             child: Align(
               alignment: const Alignment(0.0, 0.7),
               child: Opacity(
-                opacity: 0.05,
+                opacity: isDark ? 0.05 : 0.07,
                 child: Text(
                   'ॐ',
                   style: GoogleFonts.cinzel(
                     fontSize: 320,
-                    color: AppColors.goldPrimary,
+                    color: AppColors.getGold(isDark),
                   ),
                 ),
               ),
@@ -115,9 +134,9 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
                         alignment: Alignment.centerLeft,
                         padding: EdgeInsets.zero,
                         onPressed: _prevStep,
-                        icon: const Icon(
+                        icon: Icon(
                           Icons.chevron_left,
-                          color: AppColors.goldPrimary,
+                          color: AppColors.getGold(isDark),
                           size: 36,
                         ),
                       )
@@ -127,13 +146,13 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
 
                     // Render Step Content
                     if (_currentStep == 0)
-                      _buildForgetPasswordStep()
+                      _buildForgetPasswordStep(isDark)
                     else if (_currentStep == 1)
-                      _buildVerificationStep()
+                      _buildVerificationStep(isDark)
                     else if (_currentStep == 2)
-                      _buildCreatePasswordStep()
+                      _buildCreatePasswordStep(isDark)
                     else
-                      _buildSuccessStep(),
+                      _buildSuccessStep(isDark),
                   ],
                 ),
               ),
@@ -145,7 +164,9 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
   }
 
   // --- Step 0: Forget Password ---
-  Widget _buildForgetPasswordStep() {
+  Widget _buildForgetPasswordStep(bool isDark) {
+    final textPrimary = isDark ? Colors.white : AppColors.textPrimaryLight;
+
     return Form(
       key: _emailFormKey,
       child: Column(
@@ -156,7 +177,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
             style: GoogleFonts.cinzel(
               fontSize: 32,
               fontWeight: FontWeight.w700,
-              color: Colors.white,
+              color: textPrimary,
             ),
           ),
           const SizedBox(height: 36),
@@ -187,7 +208,10 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
   }
 
   // --- Step 1: Verification / Enter OTP ---
-  Widget _buildVerificationStep() {
+  Widget _buildVerificationStep(bool isDark) {
+    final textPrimary = isDark ? Colors.white : AppColors.textPrimaryLight;
+    final goldColor = AppColors.getGold(isDark);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -196,14 +220,14 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
           style: GoogleFonts.cinzel(
             fontSize: 32,
             fontWeight: FontWeight.w700,
-            color: Colors.white,
+            color: textPrimary,
           ),
         ),
         const SizedBox(height: 36),
         Text(
           'ENTER OTP',
           style: GoogleFonts.cinzel(
-            color: AppColors.goldPrimary,
+            color: goldColor,
             fontSize: 12,
             fontWeight: FontWeight.w700,
             letterSpacing: 1.2,
@@ -222,22 +246,32 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
                 focusNode: _otpFocusNodes[index],
                 textAlign: TextAlign.center,
                 keyboardType: TextInputType.number,
-                style: GoogleFonts.roboto(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
+                style: GoogleFonts.roboto(
+                  color: textPrimary,
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
                 inputFormatters: [
                   LengthLimitingTextInputFormatter(1),
                   FilteringTextInputFormatter.digitsOnly,
                 ],
                 decoration: InputDecoration(
-                  fillColor: AppColors.cardDark,
+                  fillColor: isDark ? AppColors.cardDark : Colors.white,
                   filled: true,
                   contentPadding: EdgeInsets.zero,
                   enabledBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: AppColors.borderDark, width: 1.5),
+                    borderSide: BorderSide(
+                      color: isDark ? AppColors.borderDark : const Color(0x35D4A827),
+                      width: 1.5,
+                    ),
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: AppColors.goldPrimary, width: 1.5),
+                    borderSide: BorderSide(
+                      color: goldColor,
+                      width: 1.5,
+                    ),
                   ),
                 ),
                 onChanged: (value) {
@@ -262,7 +296,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
               ? Text(
                   'RESEND OTP (00:${_resendTimerSeconds.toString().padLeft(2, '0')})',
                   style: GoogleFonts.roboto(
-                    color: AppColors.textMuted,
+                    color: AppColors.getTextMuted(isDark),
                     fontSize: 14,
                     fontWeight: FontWeight.w500,
                   ),
@@ -284,7 +318,9 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
   }
 
   // --- Step 2: Create New Password ---
-  Widget _buildCreatePasswordStep() {
+  Widget _buildCreatePasswordStep(bool isDark) {
+    final textPrimary = isDark ? Colors.white : AppColors.textPrimaryLight;
+
     return Form(
       key: _passwordFormKey,
       child: Column(
@@ -295,7 +331,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
             style: GoogleFonts.cinzel(
               fontSize: 32,
               fontWeight: FontWeight.w700,
-              color: Colors.white,
+              color: textPrimary,
             ),
           ),
           const SizedBox(height: 36),
@@ -339,7 +375,9 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
   }
 
   // --- Step 3: Success Screen ---
-  Widget _buildSuccessStep() {
+  Widget _buildSuccessStep(bool isDark) {
+    final textPrimary = isDark ? Colors.white : AppColors.textPrimaryLight;
+
     return Center(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.center,
@@ -349,7 +387,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
             style: GoogleFonts.cinzel(
               fontSize: 32,
               fontWeight: FontWeight.w700,
-              color: Colors.white,
+              color: textPrimary,
             ),
           ),
           const SizedBox(height: 50),
@@ -358,7 +396,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
             width: 120,
             height: 120,
             decoration: BoxDecoration(
-              color: Colors.green.withValues(alpha: 0.15),
+              color: Colors.green.withValues(alpha: isDark ? 0.15 : 0.12),
               borderRadius: BorderRadius.circular(30),
             ),
             child: const Icon(
@@ -371,7 +409,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
           Text(
             'Password Changed!',
             style: GoogleFonts.roboto(
-              color: Colors.white,
+              color: textPrimary,
               fontSize: 24,
               fontWeight: FontWeight.bold,
             ),
@@ -381,7 +419,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
             'Your password has been\nchanged successfully.',
             textAlign: TextAlign.center,
             style: GoogleFonts.roboto(
-              color: AppColors.textSecondary,
+              color: AppColors.getTextSecondary(isDark),
               fontSize: 14,
             ),
           ),

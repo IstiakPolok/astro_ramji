@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../core/constants/app_assets.dart';
 import '../../../core/constants/app_text_styles.dart';
+import '../../providers/theme_provider.dart';
 import '../../widgets/custom_button.dart';
 
 class WelcomePage extends StatelessWidget {
@@ -9,16 +12,27 @@ class WelcomePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final themeProvider = Provider.of<ThemeProvider>(context);
+    final isDark = themeProvider.isDarkMode;
+
     return Scaffold(
+      backgroundColor: AppColors.getBackground(isDark),
       body: Container(
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           image: DecorationImage(
-            image: AssetImage('assets/images/background/getstartedbg.png'),
+            image: AssetImage(
+              isDark ? AppAssets.bgGetStartedDark : AppAssets.bgLight1,
+            ),
             fit: BoxFit.cover,
           ),
         ),
         child: Stack(
           children: [
+            // Light mode subtle tint overlay
+            if (!isDark)
+              Positioned.fill(
+                child: Container(color: Colors.white.withValues(alpha: 0.25)),
+              ),
             SafeArea(
               child: Padding(
                 padding: const EdgeInsets.symmetric(
@@ -31,7 +45,7 @@ class WelcomePage extends StatelessWidget {
                   children: [
                     // Om logo in golden circle
                     Image.asset(
-                      'assets/images/logo/getstartedlogo.png',
+                      AppAssets.getStartedLogo,
                       width: 250,
                       height: 250,
                       fit: BoxFit.contain,
@@ -45,7 +59,7 @@ class WelcomePage extends StatelessWidget {
                         fontSize: 24,
                         fontWeight: FontWeight.w700,
                         height: 1.3,
-                        color: Colors.white,
+                        color: isDark ? Colors.white : AppColors.textPrimaryLight,
                       ),
                     ),
                     const SizedBox(height: 16),
@@ -54,7 +68,7 @@ class WelcomePage extends StatelessWidget {
                       'Generate your natal birth chart, explore planetary positions, and find cosmic compatibility with your partner.',
                       textAlign: TextAlign.center,
                       style: AppTextStyles.subheadline.copyWith(
-                        color: AppColors.textSecondary,
+                        color: AppColors.getTextSecondary(isDark),
                         height: 1.5,
                       ),
                     ),

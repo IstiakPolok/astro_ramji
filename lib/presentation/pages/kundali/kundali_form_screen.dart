@@ -1,12 +1,11 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
 import 'package:video_player/video_player.dart';
 import '../../../core/constants/app_colors.dart';
-
-const List<Shadow> _textShadows = [
-  Shadow(color: Colors.black, blurRadius: 4, offset: Offset(1, 1)),
-];
+import '../../../core/constants/app_assets.dart';
+import '../../providers/theme_provider.dart';
 
 class KundaliFormScreen extends StatefulWidget {
   const KundaliFormScreen({super.key});
@@ -59,9 +58,9 @@ class _KundaliFormScreenState extends State<KundaliFormScreen>
   @override
   void initState() {
     super.initState();
-    // Video Background Initialization
+    // Video Background Initialization (for dark mode)
     _videoController =
-        VideoPlayerController.asset('assets/videos/homescreenbg.mp4')
+        VideoPlayerController.asset(AppAssets.videoHomeBg)
           ..initialize().then((_) {
             if (mounted) {
               setState(() {
@@ -74,7 +73,7 @@ class _KundaliFormScreenState extends State<KundaliFormScreen>
             }
           });
 
-    // Rotation animation for rashichakra / loading spinner
+    // Rotation animation for spinner
     _rotationController = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 10),
@@ -93,7 +92,7 @@ class _KundaliFormScreenState extends State<KundaliFormScreen>
   }
 
   // --- Pickers ---
-  Future<void> _selectDate(BuildContext context) async {
+  Future<void> _selectDate(BuildContext context, bool isDark) async {
     final DateTime? picked = await showDatePicker(
       context: context,
       initialDate: _selectedDate ?? DateTime(1998, 1, 24),
@@ -102,14 +101,21 @@ class _KundaliFormScreenState extends State<KundaliFormScreen>
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.dark(
-              primary: AppColors.goldPrimary,
-              onPrimary: Colors.black,
-              surface: AppColors.cardDark,
-              onSurface: AppColors.textPrimary,
-            ),
-            dialogTheme: const DialogThemeData(
-              backgroundColor: AppColors.spaceDark,
+            colorScheme: isDark
+                ? const ColorScheme.dark(
+                    primary: AppColors.goldPrimary,
+                    onPrimary: Colors.black,
+                    surface: AppColors.cardDark,
+                    onSurface: AppColors.textPrimary,
+                  )
+                : const ColorScheme.light(
+                    primary: AppColors.goldPrimaryDark,
+                    onPrimary: Colors.white,
+                    surface: Colors.white,
+                    onSurface: AppColors.textPrimaryLight,
+                  ),
+            dialogTheme: DialogThemeData(
+              backgroundColor: isDark ? AppColors.spaceDark : AppColors.spaceLight,
             ),
           ),
           child: child!,
@@ -120,20 +126,9 @@ class _KundaliFormScreenState extends State<KundaliFormScreen>
     if (picked != null && picked != _selectedDate) {
       setState(() {
         _selectedDate = picked;
-        // Format: 24 Jan 1998
         final List<String> months = [
-          'Jan',
-          'Feb',
-          'Mar',
-          'Apr',
-          'May',
-          'Jun',
-          'Jul',
-          'Aug',
-          'Sep',
-          'Oct',
-          'Nov',
-          'Dec',
+          'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+          'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
         ];
         _dateController.text =
             "${picked.day} ${months[picked.month - 1]} ${picked.year}";
@@ -141,21 +136,28 @@ class _KundaliFormScreenState extends State<KundaliFormScreen>
     }
   }
 
-  Future<void> _selectTime(BuildContext context) async {
+  Future<void> _selectTime(BuildContext context, bool isDark) async {
     final TimeOfDay? picked = await showTimePicker(
       context: context,
       initialTime: _selectedTime ?? const TimeOfDay(hour: 10, minute: 15),
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.dark(
-              primary: AppColors.goldPrimary,
-              onPrimary: Colors.black,
-              surface: AppColors.cardDark,
-              onSurface: AppColors.textPrimary,
-            ),
-            dialogTheme: const DialogThemeData(
-              backgroundColor: AppColors.spaceDark,
+            colorScheme: isDark
+                ? const ColorScheme.dark(
+                    primary: AppColors.goldPrimary,
+                    onPrimary: Colors.black,
+                    surface: AppColors.cardDark,
+                    onSurface: AppColors.textPrimary,
+                  )
+                : const ColorScheme.light(
+                    primary: AppColors.goldPrimaryDark,
+                    onPrimary: Colors.white,
+                    surface: Colors.white,
+                    onSurface: AppColors.textPrimaryLight,
+                  ),
+            dialogTheme: DialogThemeData(
+              backgroundColor: isDark ? AppColors.spaceDark : AppColors.spaceLight,
             ),
           ),
           child: child!,
@@ -172,17 +174,20 @@ class _KundaliFormScreenState extends State<KundaliFormScreen>
   }
 
   // --- Ayanamsa Dialog Selector ---
-  void _showAyanamsaPicker() {
+  void _showAyanamsaPicker(bool isDark) {
+    final goldColor = AppColors.getGold(isDark);
+    final textColor = AppColors.getTextPrimary(isDark);
+
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
       builder: (context) {
         return Container(
-          decoration: const BoxDecoration(
-            color: AppColors.spaceDark,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          decoration: BoxDecoration(
+            color: isDark ? AppColors.spaceDark : AppColors.spaceLight,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
             border: Border(
-              top: BorderSide(color: AppColors.goldPrimary, width: 1.5),
+              top: BorderSide(color: goldColor, width: 1.5),
             ),
           ),
           padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
@@ -192,7 +197,7 @@ class _KundaliFormScreenState extends State<KundaliFormScreen>
               Text(
                 'SELECT AYANAMSA',
                 style: GoogleFonts.cinzel(
-                  color: AppColors.goldPrimary,
+                  color: goldColor,
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
                   letterSpacing: 1.2,
@@ -210,18 +215,16 @@ class _KundaliFormScreenState extends State<KundaliFormScreen>
                       title: Text(
                         option,
                         style: GoogleFonts.roboto(
-                          color: isSelected
-                              ? AppColors.goldPrimary
-                              : AppColors.textPrimary,
+                          color: isSelected ? goldColor : textColor,
                           fontWeight: isSelected
                               ? FontWeight.bold
                               : FontWeight.normal,
                         ),
                       ),
                       trailing: isSelected
-                          ? const Icon(
+                          ? Icon(
                               Icons.check_circle,
-                              color: AppColors.goldPrimary,
+                              color: goldColor,
                             )
                           : null,
                       onTap: () {
@@ -251,7 +254,6 @@ class _KundaliFormScreenState extends State<KundaliFormScreen>
     });
     _rotationController.repeat();
 
-    // Loop through step text
     Timer.periodic(const Duration(milliseconds: 700), (timer) {
       if (!mounted) {
         timer.cancel();
@@ -274,30 +276,44 @@ class _KundaliFormScreenState extends State<KundaliFormScreen>
 
   @override
   Widget build(BuildContext context) {
+    final themeProvider = Provider.of<ThemeProvider>(context);
+    final isDark = themeProvider.isDarkMode;
+
     return Scaffold(
-      backgroundColor: AppColors.spaceDark,
+      backgroundColor: AppColors.getBackground(isDark),
       body: SafeArea(
         child: Stack(
           children: [
-            // Background Video/Image
+            // Celestial Background
+            // In Light Mode: LIGHT2.png
+            // In Dark Mode: Video or home_bg.png fallback
             Positioned.fill(
-              child: _isVideoInitialized && _videoController != null
-                  ? FittedBox(
-                      fit: BoxFit.cover,
-                      child: SizedBox(
-                        width: _videoController!.value.size.width,
-                        height: _videoController!.value.size.height,
-                        child: VideoPlayer(_videoController!),
-                      ),
-                    )
+              child: isDark
+                  ? (_isVideoInitialized && _videoController != null
+                      ? FittedBox(
+                          fit: BoxFit.cover,
+                          child: SizedBox(
+                            width: _videoController!.value.size.width,
+                            height: _videoController!.value.size.height,
+                            child: VideoPlayer(_videoController!),
+                          ),
+                        )
+                      : Image.asset(
+                          AppAssets.bgHomeDark,
+                          fit: BoxFit.cover,
+                        ))
                   : Image.asset(
-                      'assets/images/background/home_bg.png',
+                      AppAssets.bgLight2,
                       fit: BoxFit.cover,
                     ),
             ),
-            // Dark transparent cover
+            // Translucent Cover
             Positioned.fill(
-              child: Container(color: Colors.black.withValues(alpha: 0.20)),
+              child: Container(
+                color: isDark
+                    ? Colors.black.withValues(alpha: 0.20)
+                    : Colors.white.withValues(alpha: 0.20),
+              ),
             ),
 
             // Main Content
@@ -306,12 +322,12 @@ class _KundaliFormScreenState extends State<KundaliFormScreen>
               child: AnimatedSwitcher(
                 duration: const Duration(milliseconds: 400),
                 child: _isCalculating
-                    ? _buildLoadingScreen()
+                    ? _buildLoadingScreen(isDark)
                     : (_showDetailedReport
-                          ? _buildDetailedReportScreen()
-                          : (_showResult
-                                ? _buildResultScreen()
-                                : _buildFormScreen())),
+                        ? _buildDetailedReportScreen(isDark)
+                        : (_showResult
+                            ? _buildResultScreen(isDark)
+                            : _buildFormScreen(isDark))),
               ),
             ),
           ],
@@ -323,7 +339,11 @@ class _KundaliFormScreenState extends State<KundaliFormScreen>
   // ==========================================
   // SCREEN 1: THE INPUT FORM
   // ==========================================
-  Widget _buildFormScreen() {
+  Widget _buildFormScreen(bool isDark) {
+    final goldColor = AppColors.getGold(isDark);
+    final textShadows = AppColors.getTextShadows(isDark);
+    final subtitleColor = isDark ? Colors.white : AppColors.textSecondaryLight;
+
     return SingleChildScrollView(
       key: const ValueKey('form_screen'),
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
@@ -340,21 +360,21 @@ class _KundaliFormScreenState extends State<KundaliFormScreen>
                   Text(
                     'BIRTH DETAILS',
                     style: GoogleFonts.cinzel(
-                      color: AppColors.textPrimary,
+                      color: isDark ? AppColors.textPrimary : AppColors.textPrimaryLight,
                       fontSize: 26,
                       fontWeight: FontWeight.bold,
                       letterSpacing: 2.0,
-                      shadows: _textShadows,
+                      shadows: textShadows,
                     ),
                   ),
                   const SizedBox(height: 6),
                   Text(
                     'Accurate information ensures precise Kundali results',
                     style: GoogleFonts.roboto(
-                      color: Colors.white,
+                      color: subtitleColor,
                       fontSize: 12,
                       letterSpacing: 0.2,
-                      shadows: _textShadows,
+                      shadows: textShadows,
                     ),
                     textAlign: TextAlign.center,
                   ),
@@ -364,11 +384,12 @@ class _KundaliFormScreenState extends State<KundaliFormScreen>
             const SizedBox(height: 36),
 
             // 1. FULL NAME
-            _buildLabelRow(Icons.person_outline, 'FULL NAME'),
+            _buildLabelRow(Icons.person_outline, 'FULL NAME', isDark),
             const SizedBox(height: 8),
             _buildTextField(
               controller: _nameController,
               hintText: 'Aarav Sharma',
+              isDark: isDark,
               validator: (val) {
                 if (val == null || val.trim().isEmpty) {
                   return 'Please enter full name';
@@ -379,26 +400,27 @@ class _KundaliFormScreenState extends State<KundaliFormScreen>
             const SizedBox(height: 24),
 
             // 2. GENDER
-            _buildLabelRow(null, 'GENDER'),
+            _buildLabelRow(null, 'GENDER', isDark),
             const SizedBox(height: 10),
             Row(
               children: [
-                _buildGenderButton('MALE'),
+                _buildGenderButton('MALE', isDark),
                 const SizedBox(width: 10),
-                _buildGenderButton('FEMALE'),
+                _buildGenderButton('FEMALE', isDark),
                 const SizedBox(width: 10),
-                _buildGenderButton('OTHER'),
+                _buildGenderButton('OTHER', isDark),
               ],
             ),
             const SizedBox(height: 24),
 
             // 3. DATE OF BIRTH
-            _buildLabelRow(Icons.calendar_month_outlined, 'DATE OF BIRTH'),
+            _buildLabelRow(Icons.calendar_month_outlined, 'DATE OF BIRTH', isDark),
             const SizedBox(height: 8),
             _buildClickableField(
               controller: _dateController,
               hintText: 'Select date of birth',
-              onTap: () => _selectDate(context),
+              isDark: isDark,
+              onTap: () => _selectDate(context, isDark),
               validator: (val) {
                 if (val == null || val.trim().isEmpty) {
                   return 'Please select date of birth';
@@ -409,12 +431,13 @@ class _KundaliFormScreenState extends State<KundaliFormScreen>
             const SizedBox(height: 24),
 
             // 4. TIME OF BIRTH
-            _buildLabelRow(Icons.access_time, 'TIME OF BIRTH'),
+            _buildLabelRow(Icons.access_time, 'TIME OF BIRTH', isDark),
             const SizedBox(height: 8),
             _buildClickableField(
               controller: _timeController,
               hintText: 'Select time of birth',
-              onTap: () => _selectTime(context),
+              isDark: isDark,
+              onTap: () => _selectTime(context, isDark),
               validator: (val) {
                 if (val == null || val.trim().isEmpty) {
                   return 'Please select time of birth';
@@ -426,19 +449,20 @@ class _KundaliFormScreenState extends State<KundaliFormScreen>
             Text(
               'Accurate birth time gives more precise results',
               style: GoogleFonts.roboto(
-                color: Colors.white70,
+                color: isDark ? Colors.white70 : AppColors.textSecondaryLight,
                 fontSize: 11,
-                shadows: _textShadows,
+                shadows: textShadows,
               ),
             ),
             const SizedBox(height: 24),
 
             // 5. PLACE OF BIRTH
-            _buildLabelRow(Icons.location_on_outlined, 'PLACE OF BIRTH'),
+            _buildLabelRow(Icons.location_on_outlined, 'PLACE OF BIRTH', isDark),
             const SizedBox(height: 8),
             _buildTextField(
               controller: _placeController,
               hintText: 'Mumbai, Maharashtra',
+              isDark: isDark,
               validator: (val) {
                 if (val == null || val.trim().isEmpty) {
                   return 'Please enter place of birth';
@@ -450,7 +474,7 @@ class _KundaliFormScreenState extends State<KundaliFormScreen>
 
             // 6. AYANAMSA (LAVENDER CARD)
             GestureDetector(
-              onTap: _showAyanamsaPicker,
+              onTap: () => _showAyanamsaPicker(isDark),
               child: Container(
                 width: double.infinity,
                 padding: const EdgeInsets.symmetric(
@@ -458,12 +482,25 @@ class _KundaliFormScreenState extends State<KundaliFormScreen>
                   vertical: 16,
                 ),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF16112C).withValues(alpha: 0.6),
+                  color: isDark
+                      ? const Color(0xFF16112C).withValues(alpha: 0.6)
+                      : const Color(0xE8FFFFFF),
                   borderRadius: BorderRadius.circular(20),
                   border: Border.all(
-                    color: AppColors.accentPurple.withValues(alpha: 0.3),
+                    color: isDark
+                        ? AppColors.accentPurple.withValues(alpha: 0.3)
+                        : goldColor.withValues(alpha: 0.4),
                     width: 1.2,
                   ),
+                  boxShadow: isDark
+                      ? null
+                      : [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.04),
+                            blurRadius: 10,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -471,20 +508,20 @@ class _KundaliFormScreenState extends State<KundaliFormScreen>
                     Text(
                       'AYANAMSA: $_selectedAyanamsa',
                       style: GoogleFonts.cinzel(
-                        color: AppColors.accentPurple,
+                        color: isDark ? AppColors.accentPurple : goldColor,
                         fontSize: 12,
                         fontWeight: FontWeight.bold,
                         letterSpacing: 1.0,
-                        shadows: _textShadows,
+                        shadows: textShadows,
                       ),
                     ),
                     const SizedBox(height: 4),
                     Text(
                       'Standard Vedic calculation method used by most Indian astrologers',
                       style: GoogleFonts.roboto(
-                        color: Colors.white70,
+                        color: isDark ? Colors.white70 : AppColors.textSecondaryLight,
                         fontSize: 10,
-                        shadows: _textShadows,
+                        shadows: textShadows,
                       ),
                     ),
                   ],
@@ -534,7 +571,10 @@ class _KundaliFormScreenState extends State<KundaliFormScreen>
   // ==========================================
   // SCREEN 2: CELESTIAL LOADING
   // ==========================================
-  Widget _buildLoadingScreen() {
+  Widget _buildLoadingScreen(bool isDark) {
+    final goldColor = AppColors.getGold(isDark);
+    final textColor = isDark ? AppColors.textSecondary : AppColors.textSecondaryLight;
+
     return Center(
       key: const ValueKey('loading_screen'),
       child: Padding(
@@ -549,22 +589,21 @@ class _KundaliFormScreenState extends State<KundaliFormScreen>
                 width: 180,
                 height: 180,
                 child: Image.asset(
-                  'assets/images/Component/rashichakra.png',
+                  AppAssets.rashiChakra,
                   fit: BoxFit.contain,
                   errorBuilder: (context, error, stackTrace) {
-                    // Fallback design if image is missing
                     return Container(
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
                         border: Border.all(
-                          color: AppColors.goldPrimary,
+                          color: goldColor,
                           width: 2,
                         ),
                       ),
-                      child: const Center(
+                      child: Center(
                         child: Icon(
                           Icons.auto_awesome,
-                          color: AppColors.goldPrimary,
+                          color: goldColor,
                           size: 64,
                         ),
                       ),
@@ -578,7 +617,7 @@ class _KundaliFormScreenState extends State<KundaliFormScreen>
             Text(
               _loadingSteps[_loadingStep].toUpperCase(),
               style: GoogleFonts.cinzel(
-                color: AppColors.goldPrimary,
+                color: goldColor,
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
                 letterSpacing: 1.5,
@@ -590,13 +629,13 @@ class _KundaliFormScreenState extends State<KundaliFormScreen>
             Text(
               'Aligning celestial bodies and planetary configurations for ${_nameController.text}',
               style: GoogleFonts.roboto(
-                color: AppColors.textSecondary,
+                color: textColor,
                 fontSize: 13,
               ),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 40),
-            // Simple animated progress bar
+            // Progress bar
             ClipRRect(
               borderRadius: BorderRadius.circular(4),
               child: SizedBox(
@@ -604,8 +643,8 @@ class _KundaliFormScreenState extends State<KundaliFormScreen>
                 height: 4,
                 child: LinearProgressIndicator(
                   value: (_loadingStep + 1) / _loadingSteps.length,
-                  backgroundColor: AppColors.borderDark,
-                  color: AppColors.goldPrimary,
+                  backgroundColor: isDark ? AppColors.borderDark : const Color(0x30D4A827),
+                  color: goldColor,
                 ),
               ),
             ),
@@ -618,7 +657,11 @@ class _KundaliFormScreenState extends State<KundaliFormScreen>
   // ==========================================
   // SCREEN 3: CHART RESULTS SCREEN
   // ==========================================
-  Widget _buildResultScreen() {
+  Widget _buildResultScreen(bool isDark) {
+    final goldColor = AppColors.getGold(isDark);
+    final textShadows = AppColors.getTextShadows(isDark);
+    final textPrimary = AppColors.getTextPrimary(isDark);
+
     return SingleChildScrollView(
       key: const ValueKey('result_screen'),
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
@@ -635,17 +678,18 @@ class _KundaliFormScreenState extends State<KundaliFormScreen>
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(
+                Icon(
                   Icons.arrow_back_ios_new,
-                  color: AppColors.goldPrimary,
+                  color: goldColor,
                   size: 14,
                 ),
                 const SizedBox(width: 6),
                 Text(
                   'Back',
                   style: GoogleFonts.roboto(
-                    color: AppColors.goldPrimary,
+                    color: goldColor,
                     fontSize: 16,
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
               ],
@@ -657,46 +701,46 @@ class _KundaliFormScreenState extends State<KundaliFormScreen>
           Text(
             _nameController.text.toUpperCase(),
             style: GoogleFonts.cinzel(
-              color: AppColors.textPrimary,
+              color: textPrimary,
               fontSize: 24,
               fontWeight: FontWeight.bold,
               letterSpacing: 1.5,
-              shadows: _textShadows,
+              shadows: textShadows,
             ),
           ),
           const SizedBox(height: 4),
           Text(
             '${_dateController.text} • ${_timeController.text}',
             style: GoogleFonts.roboto(
-              color: Colors.white,
+              color: isDark ? Colors.white : AppColors.textSecondaryLight,
               fontSize: 13,
               fontWeight: FontWeight.w500,
-              shadows: _textShadows,
+              shadows: textShadows,
             ),
           ),
           const SizedBox(height: 2),
           Text(
             _placeController.text,
             style: GoogleFonts.roboto(
-              color: Colors.white.withValues(alpha: 0.8),
+              color: isDark ? Colors.white.withValues(alpha: 0.8) : AppColors.textMutedLight,
               fontSize: 13,
-              shadows: _textShadows,
+              shadows: textShadows,
             ),
           ),
           const SizedBox(height: 24),
 
           // 3. Tab Bar (CHART, PLANETS, VIMSHOTTARI)
-          _buildTabBar(),
+          _buildTabBar(isDark),
           const SizedBox(height: 24),
 
           // 4. Tab Content Switcher
           AnimatedSwitcher(
             duration: const Duration(milliseconds: 300),
             child: _activeTab == 0
-                ? _buildChartTab()
+                ? _buildChartTab(isDark)
                 : (_activeTab == 1
-                      ? _buildPlanetsTab()
-                      : _buildVimshottariTab()),
+                    ? _buildPlanetsTab(isDark)
+                    : _buildVimshottariTab(isDark)),
           ),
           const SizedBox(height: 24),
         ],
@@ -704,25 +748,26 @@ class _KundaliFormScreenState extends State<KundaliFormScreen>
     );
   }
 
-  Widget _buildTabBar() {
+  Widget _buildTabBar(bool isDark) {
     return Container(
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
-        color: AppColors.cardDark.withValues(alpha: 0.5),
+        color: isDark ? AppColors.cardDark.withValues(alpha: 0.5) : const Color(0xE8FFFFFF),
         borderRadius: BorderRadius.circular(24),
+        border: isDark ? null : Border.all(color: const Color(0x30D4A827), width: 1),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
-          _buildTabItem(0, 'CHART'),
-          _buildTabItem(1, 'PLANETS'),
-          _buildTabItem(2, 'VIMSHOTTARI'),
+          _buildTabItem(0, 'CHART', isDark),
+          _buildTabItem(1, 'PLANETS', isDark),
+          _buildTabItem(2, 'VIMSHOTTARI', isDark),
         ],
       ),
     );
   }
 
-  Widget _buildTabItem(int index, String label) {
+  Widget _buildTabItem(int index, String label, bool isDark) {
     final isSelected = _activeTab == index;
     return Expanded(
       child: GestureDetector(
@@ -741,11 +786,13 @@ class _KundaliFormScreenState extends State<KundaliFormScreen>
             child: Text(
               label,
               style: GoogleFonts.cinzel(
-                color: isSelected ? Colors.black : Colors.white,
+                color: isSelected
+                    ? Colors.black
+                    : (isDark ? Colors.white : AppColors.textSecondaryLight),
                 fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                 fontSize: 12,
                 letterSpacing: 0.8,
-                shadows: isSelected ? null : _textShadows,
+                shadows: isSelected ? null : AppColors.getTextShadows(isDark),
               ),
             ),
           ),
@@ -755,18 +802,20 @@ class _KundaliFormScreenState extends State<KundaliFormScreen>
   }
 
   // --- CHART TAB ---
-  Widget _buildChartTab() {
+  Widget _buildChartTab(bool isDark) {
+    final goldColor = AppColors.getGold(isDark);
+
     return Column(
       key: const ValueKey('chart_tab'),
       children: [
         // Sign Info Row (Lagna, Moon, Sun)
         Row(
           children: [
-            _buildSignInfoCard('LAGNA', 'Pisces', '♓', Colors.purpleAccent),
+            _buildSignInfoCard('LAGNA', 'Pisces', '♓', Colors.purpleAccent, isDark),
             const SizedBox(width: 8),
-            _buildSignInfoCard('MOON', 'Scorpio', '♏', Colors.pinkAccent),
+            _buildSignInfoCard('MOON', 'Scorpio', '♏', Colors.pinkAccent, isDark),
             const SizedBox(width: 8),
-            _buildSignInfoCard('SUN', 'Aquarius', '♒', Colors.deepPurpleAccent),
+            _buildSignInfoCard('SUN', 'Aquarius', '♒', Colors.deepPurpleAccent, isDark),
           ],
         ),
         const SizedBox(height: 20),
@@ -776,18 +825,31 @@ class _KundaliFormScreenState extends State<KundaliFormScreen>
           width: double.infinity,
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: const Color(0xFF0C071D).withValues(alpha: 0.85),
+            color: isDark
+                ? const Color(0xFF0C071D).withValues(alpha: 0.85)
+                : const Color(0xF7FFFFFF),
             borderRadius: BorderRadius.circular(20),
             border: Border.all(
-              color: AppColors.goldPrimary.withValues(alpha: 0.25),
+              color: goldColor.withValues(alpha: isDark ? 0.25 : 0.45),
               width: 1.5,
             ),
+            boxShadow: isDark
+                ? null
+                : [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.05),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
           ),
           child: Column(
             children: [
               AspectRatio(
                 aspectRatio: 1.05,
-                child: CustomPaint(painter: KundaliChartPainter()),
+                child: CustomPaint(
+                  painter: KundaliChartPainter(isDark: isDark),
+                ),
               ),
               const SizedBox(height: 16),
               Row(
@@ -796,7 +858,7 @@ class _KundaliFormScreenState extends State<KundaliFormScreen>
                   Text(
                     'NORTH INDIAN STYLE',
                     style: GoogleFonts.cinzel(
-                      color: AppColors.goldPrimary,
+                      color: goldColor,
                       fontSize: 12,
                       fontWeight: FontWeight.bold,
                       letterSpacing: 0.8,
@@ -807,9 +869,9 @@ class _KundaliFormScreenState extends State<KundaliFormScreen>
                     child: Text(
                       '$_selectedAyanamsa Ayanamsa',
                       style: GoogleFonts.roboto(
-                        color: Colors.white70,
+                        color: isDark ? Colors.white70 : AppColors.textSecondaryLight,
                         fontSize: 11,
-                        shadows: _textShadows,
+                        shadows: AppColors.getTextShadows(isDark),
                       ),
                       textAlign: TextAlign.end,
                       overflow: TextOverflow.ellipsis,
@@ -824,29 +886,31 @@ class _KundaliFormScreenState extends State<KundaliFormScreen>
         const SizedBox(height: 20),
 
         // Planet Positions Card
-        _buildPlanetPositionsCard(),
+        _buildPlanetPositionsCard(isDark: isDark),
         const SizedBox(height: 24),
 
         // View Detailed Report Button
-        _buildViewReportButton(),
+        _buildViewReportButton(isDark),
       ],
     );
   }
 
   // --- PLANETS TAB ---
-  Widget _buildPlanetsTab() {
+  Widget _buildPlanetsTab(bool isDark) {
     return Column(
       key: const ValueKey('planets_tab'),
       children: [
-        _buildPlanetPositionsCard(isExpanded: true),
+        _buildPlanetPositionsCard(isExpanded: true, isDark: isDark),
         const SizedBox(height: 24),
-        _buildViewReportButton(),
+        _buildViewReportButton(isDark),
       ],
     );
   }
 
   // --- VIMSHOTTARI TAB ---
-  Widget _buildVimshottariTab() {
+  Widget _buildVimshottariTab(bool isDark) {
+    final goldColor = AppColors.getGold(isDark);
+
     return Column(
       key: const ValueKey('vimshottari_tab'),
       children: [
@@ -854,12 +918,23 @@ class _KundaliFormScreenState extends State<KundaliFormScreen>
           width: double.infinity,
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
-            color: const Color(0xFF0C071D).withValues(alpha: 0.8),
+            color: isDark
+                ? const Color(0xFF0C071D).withValues(alpha: 0.8)
+                : const Color(0xF7FFFFFF),
             borderRadius: BorderRadius.circular(20),
             border: Border.all(
-              color: AppColors.goldPrimary.withValues(alpha: 0.2),
+              color: goldColor.withValues(alpha: isDark ? 0.2 : 0.4),
               width: 1.2,
             ),
+            boxShadow: isDark
+                ? null
+                : [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.05),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -867,7 +942,7 @@ class _KundaliFormScreenState extends State<KundaliFormScreen>
               Text(
                 'VIMSHOTTARI MAHADASHAS',
                 style: GoogleFonts.cinzel(
-                  color: AppColors.goldPrimary,
+                  color: goldColor,
                   fontSize: 14,
                   fontWeight: FontWeight.bold,
                   letterSpacing: 1.0,
@@ -878,32 +953,36 @@ class _KundaliFormScreenState extends State<KundaliFormScreen>
                 'Jupiter Dasha',
                 '16 Years',
                 '1990 - 2006',
+                isDark,
                 isPast: true,
               ),
               _buildTimelineItem(
                 'Saturn Dasha',
                 '19 Years',
                 '2006 - 2025',
+                isDark,
                 isPast: true,
               ),
               _buildTimelineItem(
                 'Mercury Dasha',
                 '17 Years',
                 '2025 - 2042',
+                isDark,
                 isCurrent: true,
               ),
-              _buildTimelineItem('Ketu Dasha', '7 Years', '2042 - 2049'),
+              _buildTimelineItem('Ketu Dasha', '7 Years', '2042 - 2049', isDark),
               _buildTimelineItem(
                 'Venus Dasha',
                 '20 Years',
                 '2049 - 2069',
+                isDark,
                 isLast: true,
               ),
             ],
           ),
         ),
         const SizedBox(height: 24),
-        _buildViewReportButton(),
+        _buildViewReportButton(isDark),
       ],
     );
   }
@@ -914,28 +993,41 @@ class _KundaliFormScreenState extends State<KundaliFormScreen>
     String sign,
     String symbol,
     Color symbolColor,
+    bool isDark,
   ) {
+    final goldColor = AppColors.getGold(isDark);
+    final textShadows = AppColors.getTextShadows(isDark);
+
     return Expanded(
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
         decoration: BoxDecoration(
-          color: const Color(0x15FFFFFF),
+          color: isDark ? const Color(0x15FFFFFF) : const Color(0xE8FFFFFF),
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: AppColors.goldPrimary.withValues(alpha: 0.25),
+            color: goldColor.withValues(alpha: isDark ? 0.25 : 0.4),
             width: 1.2,
           ),
+          boxShadow: isDark
+              ? null
+              : [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.04),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
         ),
         child: Column(
           children: [
             Text(
               label,
               style: GoogleFonts.cinzel(
-                color: AppColors.goldPrimary,
+                color: goldColor,
                 fontSize: 10,
                 fontWeight: FontWeight.bold,
                 letterSpacing: 0.8,
-                shadows: _textShadows,
+                shadows: textShadows,
               ),
             ),
             const SizedBox(height: 4),
@@ -943,10 +1035,10 @@ class _KundaliFormScreenState extends State<KundaliFormScreen>
               textAlign: TextAlign.center,
               text: TextSpan(
                 style: GoogleFonts.roboto(
-                  color: Colors.white,
+                  color: isDark ? Colors.white : AppColors.textPrimaryLight,
                   fontSize: 13,
-                  fontWeight: FontWeight.w500,
-                  shadows: _textShadows,
+                  fontWeight: FontWeight.w600,
+                  shadows: textShadows,
                 ),
                 children: [
                   TextSpan(text: '$sign '),
@@ -967,21 +1059,28 @@ class _KundaliFormScreenState extends State<KundaliFormScreen>
     );
   }
 
-  Widget _buildPlanetPositionsCard({bool isExpanded = false}) {
+  Widget _buildPlanetPositionsCard({bool isExpanded = false, required bool isDark}) {
+    final goldColor = AppColors.getGold(isDark);
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF0C071D).withValues(alpha: 0.85) : const Color(0xF7FFFFFF),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: AppColors.goldPrimary.withValues(alpha: 0.2),
+          color: goldColor.withValues(alpha: isDark ? 0.2 : 0.4),
           width: 1.2,
         ),
-        image: const DecorationImage(
-          image: AssetImage('assets/images/background/home_bg.png'),
-          fit: BoxFit.cover,
-          colorFilter: ColorFilter.mode(Colors.black87, BlendMode.darken),
-        ),
+        boxShadow: isDark
+            ? null
+            : [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.05),
+                  blurRadius: 12,
+                  offset: const Offset(0, 4),
+                ),
+              ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -989,7 +1088,7 @@ class _KundaliFormScreenState extends State<KundaliFormScreen>
           Text(
             'PLANET POSITIONS',
             style: GoogleFonts.cinzel(
-              color: AppColors.goldPrimary,
+              color: goldColor,
               fontSize: 14,
               fontWeight: FontWeight.bold,
               letterSpacing: 1.0,
@@ -1006,15 +1105,15 @@ class _KundaliFormScreenState extends State<KundaliFormScreen>
               crossAxisSpacing: 8,
               mainAxisSpacing: 12,
               children: [
-                _buildPlanetItem('☉', 'Su', 'H12'),
-                _buildPlanetItem('☽', 'Mo', 'H9'),
-                _buildPlanetItem('♂', 'Ma', 'H10'),
-                _buildPlanetItem('☿', 'Me', 'H11', isRetrograde: true),
-                _buildPlanetItem('♃', 'Ju', 'H4'),
-                _buildPlanetItem('♀', 'Ve', 'H11'),
-                _buildPlanetItem('♄', 'Sa', 'H10'),
-                _buildPlanetItem('☊', 'Ra', 'H7', isRetrograde: true),
-                _buildPlanetItem('☋', 'Ke', 'H1', isRetrograde: true),
+                _buildPlanetItem('☉', 'Su', 'H12', isDark),
+                _buildPlanetItem('☽', 'Mo', 'H9', isDark),
+                _buildPlanetItem('♂', 'Ma', 'H10', isDark),
+                _buildPlanetItem('☿', 'Me', 'H11', isDark, isRetrograde: true),
+                _buildPlanetItem('♃', 'Ju', 'H4', isDark),
+                _buildPlanetItem('♀', 'Ve', 'H11', isDark),
+                _buildPlanetItem('♄', 'Sa', 'H10', isDark),
+                _buildPlanetItem('☊', 'Ra', 'H7', isDark, isRetrograde: true),
+                _buildPlanetItem('☋', 'Ke', 'H1', isDark, isRetrograde: true),
               ],
             ),
           ] else ...[
@@ -1022,81 +1121,15 @@ class _KundaliFormScreenState extends State<KundaliFormScreen>
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
               children: [
-                _buildPlanetDetailRow(
-                  '☉',
-                  'Sun',
-                  'Pisces',
-                  'H12',
-                  '29° 12\'',
-                  'Revati',
-                ),
-                _buildPlanetDetailRow(
-                  '☽',
-                  'Moon',
-                  'Scorpio',
-                  'H9',
-                  '14° 02\'',
-                  'Anuradha',
-                ),
-                _buildPlanetDetailRow(
-                  '♂',
-                  'Mars',
-                  'Capricorn',
-                  'H10',
-                  '10° 45\'',
-                  'Shravana',
-                ),
-                _buildPlanetDetailRow(
-                  '☿',
-                  'Mercury (R)',
-                  'Aquarius',
-                  'H11',
-                  '18° 10\'',
-                  'Shatabhisha',
-                  isRetrograde: true,
-                ),
-                _buildPlanetDetailRow(
-                  '♃',
-                  'Jupiter',
-                  'Cancer',
-                  'H4',
-                  '04° 15\'',
-                  'Pushya',
-                ),
-                _buildPlanetDetailRow(
-                  '♀',
-                  'Venus',
-                  'Aquarius',
-                  'H11',
-                  '12° 30\'',
-                  'Shatabhisha',
-                ),
-                _buildPlanetDetailRow(
-                  '♄',
-                  'Saturn',
-                  'Capricorn',
-                  'H10',
-                  '22° 40\'',
-                  'Dhanishta',
-                ),
-                _buildPlanetDetailRow(
-                  '☊',
-                  'Rahu (R)',
-                  'Libra',
-                  'H7',
-                  '07° 50\'',
-                  'Swati',
-                  isRetrograde: true,
-                ),
-                _buildPlanetDetailRow(
-                  '☋',
-                  'Ketu (R)',
-                  'Aries',
-                  'H1',
-                  '07° 50\'',
-                  'Ashwini',
-                  isRetrograde: true,
-                ),
+                _buildPlanetDetailRow('☉', 'Sun', 'Pisces', 'H12', '29° 12\'', 'Revati', isDark),
+                _buildPlanetDetailRow('☽', 'Moon', 'Scorpio', 'H9', '14° 02\'', 'Anuradha', isDark),
+                _buildPlanetDetailRow('♂', 'Mars', 'Capricorn', 'H10', '10° 45\'', 'Shravana', isDark),
+                _buildPlanetDetailRow('☿', 'Mercury (R)', 'Aquarius', 'H11', '18° 10\'', 'Shatabhisha', isDark, isRetrograde: true),
+                _buildPlanetDetailRow('♃', 'Jupiter', 'Cancer', 'H4', '04° 15\'', 'Pushya', isDark),
+                _buildPlanetDetailRow('♀', 'Venus', 'Aquarius', 'H11', '12° 30\'', 'Shatabhisha', isDark),
+                _buildPlanetDetailRow('♄', 'Saturn', 'Capricorn', 'H10', '22° 40\'', 'Dhanishta', isDark),
+                _buildPlanetDetailRow('☊', 'Rahu (R)', 'Libra', 'H7', '07° 50\'', 'Swati', isDark, isRetrograde: true),
+                _buildPlanetDetailRow('☋', 'Ketu (R)', 'Aries', 'H1', '07° 50\'', 'Ashwini', isDark, isRetrograde: true),
               ],
             ),
           ],
@@ -1108,19 +1141,24 @@ class _KundaliFormScreenState extends State<KundaliFormScreen>
   Widget _buildPlanetItem(
     String symbol,
     String name,
-    String house, {
+    String house,
+    bool isDark, {
     bool isRetrograde = false,
   }) {
+    final goldColor = AppColors.getGold(isDark);
+    final textShadows = AppColors.getTextShadows(isDark);
+    final textColor = isDark ? Colors.white : AppColors.textPrimaryLight;
+
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
         Text(
           symbol,
           style: GoogleFonts.roboto(
-            color: AppColors.goldPrimary,
+            color: goldColor,
             fontSize: 20,
             fontWeight: FontWeight.bold,
-            shadows: _textShadows,
+            shadows: textShadows,
           ),
         ),
         const SizedBox(width: 8),
@@ -1131,10 +1169,10 @@ class _KundaliFormScreenState extends State<KundaliFormScreen>
             RichText(
               text: TextSpan(
                 style: GoogleFonts.roboto(
-                  color: Colors.white,
+                  color: textColor,
                   fontSize: 13,
                   fontWeight: FontWeight.bold,
-                  shadows: _textShadows,
+                  shadows: textShadows,
                 ),
                 children: [
                   TextSpan(text: name),
@@ -1152,9 +1190,9 @@ class _KundaliFormScreenState extends State<KundaliFormScreen>
             Text(
               house,
               style: GoogleFonts.roboto(
-                color: Colors.white70,
+                color: isDark ? Colors.white70 : AppColors.textSecondaryLight,
                 fontSize: 10,
-                shadows: _textShadows,
+                shadows: textShadows,
               ),
             ),
           ],
@@ -1169,15 +1207,23 @@ class _KundaliFormScreenState extends State<KundaliFormScreen>
     String sign,
     String house,
     String degree,
-    String nakshatra, {
+    String nakshatra,
+    bool isDark, {
     bool isRetrograde = false,
   }) {
+    final goldColor = AppColors.getGold(isDark);
+    final textShadows = AppColors.getTextShadows(isDark);
+    final textColor = isDark ? Colors.white : AppColors.textPrimaryLight;
+    final textSecondary = isDark ? Colors.white70 : AppColors.textSecondaryLight;
+
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 8),
       decoration: BoxDecoration(
         border: Border(
           bottom: BorderSide(
-            color: AppColors.borderDark.withValues(alpha: 0.3),
+            color: isDark
+                ? AppColors.borderDark.withValues(alpha: 0.3)
+                : const Color(0x20D4A827),
             width: 1,
           ),
         ),
@@ -1189,10 +1235,10 @@ class _KundaliFormScreenState extends State<KundaliFormScreen>
             child: Text(
               symbol,
               style: GoogleFonts.roboto(
-                color: AppColors.goldPrimary,
+                color: goldColor,
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
-                shadows: _textShadows,
+                shadows: textShadows,
               ),
             ),
           ),
@@ -1201,10 +1247,10 @@ class _KundaliFormScreenState extends State<KundaliFormScreen>
             child: Text(
               name,
               style: GoogleFonts.roboto(
-                color: Colors.white,
+                color: textColor,
                 fontSize: 13,
-                fontWeight: FontWeight.w500,
-                shadows: _textShadows,
+                fontWeight: FontWeight.w600,
+                shadows: textShadows,
               ),
             ),
           ),
@@ -1212,9 +1258,10 @@ class _KundaliFormScreenState extends State<KundaliFormScreen>
             child: Text(
               house,
               style: GoogleFonts.roboto(
-                color: AppColors.goldPrimary,
+                color: goldColor,
                 fontSize: 12,
-                shadows: _textShadows,
+                fontWeight: FontWeight.w600,
+                shadows: textShadows,
               ),
             ),
           ),
@@ -1223,9 +1270,9 @@ class _KundaliFormScreenState extends State<KundaliFormScreen>
             child: Text(
               sign,
               style: GoogleFonts.roboto(
-                color: Colors.white70,
+                color: textSecondary,
                 fontSize: 12,
-                shadows: _textShadows,
+                shadows: textShadows,
               ),
             ),
           ),
@@ -1237,17 +1284,18 @@ class _KundaliFormScreenState extends State<KundaliFormScreen>
                 Text(
                   degree,
                   style: GoogleFonts.roboto(
-                    color: Colors.white,
+                    color: textColor,
                     fontSize: 12,
-                    shadows: _textShadows,
+                    fontWeight: FontWeight.w500,
+                    shadows: textShadows,
                   ),
                 ),
                 Text(
                   nakshatra,
                   style: GoogleFonts.roboto(
-                    color: Colors.white60,
+                    color: isDark ? Colors.white60 : AppColors.textMutedLight,
                     fontSize: 10,
-                    shadows: _textShadows,
+                    shadows: textShadows,
                   ),
                 ),
               ],
@@ -1261,19 +1309,20 @@ class _KundaliFormScreenState extends State<KundaliFormScreen>
   Widget _buildTimelineItem(
     String title,
     String duration,
-    String years, {
+    String years,
+    bool isDark, {
     bool isPast = false,
     bool isCurrent = false,
     bool isLast = false,
   }) {
-    Color dotColor = Colors.white38;
-    Color textColor = Colors.white70;
+    Color dotColor = isDark ? Colors.white38 : Colors.black26;
+    Color textColor = isDark ? Colors.white70 : AppColors.textSecondaryLight;
     if (isCurrent) {
       dotColor = AppColors.goldOrange;
-      textColor = Colors.white;
+      textColor = isDark ? Colors.white : AppColors.textPrimaryLight;
     } else if (isPast) {
-      dotColor = AppColors.goldPrimary.withValues(alpha: 0.8);
-      textColor = Colors.white.withValues(alpha: 0.7);
+      dotColor = AppColors.getGold(isDark).withValues(alpha: 0.8);
+      textColor = isDark ? Colors.white.withValues(alpha: 0.8) : AppColors.textPrimaryLight.withValues(alpha: 0.8);
     }
 
     return IntrinsicHeight(
@@ -1302,7 +1351,9 @@ class _KundaliFormScreenState extends State<KundaliFormScreen>
                 Expanded(
                   child: Container(
                     width: 2,
-                    color: AppColors.borderDark.withValues(alpha: 0.5),
+                    color: isDark
+                        ? AppColors.borderDark.withValues(alpha: 0.5)
+                        : const Color(0x30D4A827),
                   ),
                 ),
             ],
@@ -1325,7 +1376,7 @@ class _KundaliFormScreenState extends State<KundaliFormScreen>
                               ? FontWeight.bold
                               : FontWeight.w500,
                           fontSize: 13,
-                          shadows: _textShadows,
+                          shadows: AppColors.getTextShadows(isDark),
                         ),
                       ),
                       if (isCurrent)
@@ -1344,9 +1395,9 @@ class _KundaliFormScreenState extends State<KundaliFormScreen>
                               width: 1,
                             ),
                           ),
-                          child: Text(
+                          child: const Text(
                             'CURRENT',
-                            style: GoogleFonts.roboto(
+                            style: TextStyle(
                               color: AppColors.goldOrange,
                               fontSize: 8,
                               fontWeight: FontWeight.bold,
@@ -1359,9 +1410,9 @@ class _KundaliFormScreenState extends State<KundaliFormScreen>
                   Text(
                     '$duration • $years',
                     style: GoogleFonts.roboto(
-                      color: Colors.white60,
+                      color: isDark ? Colors.white60 : AppColors.textMutedLight,
                       fontSize: 11,
-                      shadows: _textShadows,
+                      shadows: AppColors.getTextShadows(isDark),
                     ),
                   ),
                 ],
@@ -1373,7 +1424,9 @@ class _KundaliFormScreenState extends State<KundaliFormScreen>
     );
   }
 
-  Widget _buildViewReportButton() {
+  Widget _buildViewReportButton(bool isDark) {
+    final goldColor = AppColors.getGold(isDark);
+
     return GestureDetector(
       onTap: () {
         setState(() {
@@ -1384,9 +1437,21 @@ class _KundaliFormScreenState extends State<KundaliFormScreen>
         width: double.infinity,
         height: 56,
         decoration: BoxDecoration(
-          color: const Color(0xFF1E1B30),
+          color: isDark ? const Color(0xFF1E1B30) : const Color(0xFFFAF6ED),
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppColors.borderDark, width: 1.5),
+          border: Border.all(
+            color: isDark ? AppColors.borderDark : const Color(0x40D4A827),
+            width: 1.5,
+          ),
+          boxShadow: isDark
+              ? null
+              : [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.04),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
         ),
         child: Center(
           child: Row(
@@ -1395,17 +1460,17 @@ class _KundaliFormScreenState extends State<KundaliFormScreen>
               Text(
                 'VIEW DETAILED REPORT',
                 style: GoogleFonts.cinzel(
-                  color: AppColors.goldPrimary,
+                  color: goldColor,
                   fontSize: 14,
                   fontWeight: FontWeight.bold,
-                  letterSpacing: 1.2,
+                  letterSpacing: 1.0,
                 ),
               ),
               const SizedBox(width: 8),
-              const Icon(
-                Icons.chevron_right,
-                color: AppColors.goldPrimary,
-                size: 18,
+              Icon(
+                Icons.arrow_forward_rounded,
+                color: goldColor,
+                size: 16,
               ),
             ],
           ),
@@ -1415,335 +1480,169 @@ class _KundaliFormScreenState extends State<KundaliFormScreen>
   }
 
   // ==========================================
-  // SCREEN 4: DETAILED REPORT SCREEN
+  // SCREEN 4: DETAILED ASTROLOGY REPORT
   // ==========================================
-  Widget _buildDetailedReportScreen() {
+  Widget _buildDetailedReportScreen(bool isDark) {
+    final goldColor = AppColors.getGold(isDark);
+    final textPrimary = AppColors.getTextPrimary(isDark);
+    final textShadows = AppColors.getTextShadows(isDark);
+
     return SingleChildScrollView(
-      key: const ValueKey('detailed_report_screen'),
+      key: const ValueKey('detailed_report'),
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 1. Back button & Download circle row
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              GestureDetector(
-                onTap: () {
-                  setState(() {
-                    _showDetailedReport = false;
-                  });
-                },
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(
-                      Icons.arrow_back_ios_new,
-                      color: AppColors.goldPrimary,
-                      size: 14,
-                    ),
-                    const SizedBox(width: 6),
-                    Text(
-                      'Kundali Chart',
-                      style: GoogleFonts.roboto(
-                        color: AppColors.goldPrimary,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w500,
-                        shadows: _textShadows,
-                      ),
-                    ),
-                  ],
+          // 1. Back button to result
+          GestureDetector(
+            onTap: () {
+              setState(() {
+                _showDetailedReport = false;
+              });
+            },
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.arrow_back_ios_new,
+                  color: goldColor,
+                  size: 14,
                 ),
-              ),
-              GestureDetector(
-                onTap: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      backgroundColor: AppColors.cardDark,
-                      content: Text(
-                        'Preparing PDF download...',
-                        style: GoogleFonts.roboto(color: AppColors.goldPrimary),
-                      ),
-                    ),
-                  );
-                },
-                child: Container(
-                  width: 36,
-                  height: 36,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: AppColors.goldPrimary.withValues(alpha: 0.15),
-                    border: Border.all(
-                      color: AppColors.goldPrimary.withValues(alpha: 0.3),
-                      width: 1,
-                    ),
-                  ),
-                  child: const Center(
-                    child: Icon(
-                      Icons.file_download_outlined,
-                      color: AppColors.goldPrimary,
-                      size: 20,
-                    ),
+                const SizedBox(width: 6),
+                Text(
+                  'Chart Overview',
+                  style: GoogleFonts.roboto(
+                    color: goldColor,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
           const SizedBox(height: 20),
 
-          // 2. Title
+          // 2. Report Header
           Text(
-            'DETAILED REPORT',
+            'DETAILED KUNDALI REPORT',
             style: GoogleFonts.cinzel(
-              color: AppColors.textPrimary,
-              fontSize: 24,
+              color: textPrimary,
+              fontSize: 22,
               fontWeight: FontWeight.bold,
-              letterSpacing: 1.5,
-              shadows: _textShadows,
+              letterSpacing: 1.2,
+              shadows: textShadows,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Comprehensive Vedic analysis for ${_nameController.text}',
+            style: GoogleFonts.roboto(
+              color: isDark ? Colors.white70 : AppColors.textSecondaryLight,
+              fontSize: 12,
+              shadows: textShadows,
             ),
           ),
           const SizedBox(height: 24),
 
-          // 3. ASCENDANT (LAGNA) CARD
+          // 3. LAGNA & PERSONALITY SUMMARY CARD
           _buildReportCard(
+            isDark: isDark,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _buildCardLabel('ASCENDANT (LAGNA)'),
-                const SizedBox(height: 16),
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      width: 52,
-                      height: 52,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: Colors.purple.withValues(alpha: 0.15),
-                        border: Border.all(
-                          color: Colors.purpleAccent.withValues(alpha: 0.4),
-                          width: 1.2,
-                        ),
-                      ),
-                      child: const Center(
-                        child: Text(
-                          '♓',
-                          style: TextStyle(
-                            color: Colors.purpleAccent,
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'PISCES (MEEN)',
-                            style: GoogleFonts.cinzel(
-                              color: Colors.white,
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              shadows: _textShadows,
-                            ),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            'Lord: Jupiter - 12°34\'',
-                            style: GoogleFonts.roboto(
-                              color: Colors.white70,
-                              fontSize: 12,
-                              fontWeight: FontWeight.w500,
-                              shadows: _textShadows,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            'Dreamy, spiritual, compassionate nature with artistic gifts',
-                            style: GoogleFonts.roboto(
-                              color: Colors.white60,
-                              fontSize: 12,
-                              height: 1.3,
-                              shadows: _textShadows,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
+                _buildCardLabel('ASCENDANT & CORE NATURE', isDark),
+                const SizedBox(height: 12),
+                Text(
+                  'Lagna: Pisces (Meen) · Ruler: Jupiter (Guru)',
+                  style: GoogleFonts.roboto(
+                    color: goldColor,
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold,
+                    shadows: textShadows,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  'Your Lagna in Pisces gives you an empathetic, deeply spiritual, and intuitive disposition. You possess strong artistic sensitivities and emotional depth, with Jupiter positioned in the auspicious 4th house giving maternal blessings and property fortune.',
+                  style: GoogleFonts.roboto(
+                    color: isDark ? Colors.white.withValues(alpha: 0.85) : AppColors.textPrimaryLight,
+                    fontSize: 12,
+                    height: 1.5,
+                    shadows: textShadows,
+                  ),
                 ),
               ],
             ),
           ),
 
-          // 4. BIRTH NAKSHATRA CARD
+          // 4. PLANETARY STRENGTHS (SHADBALA) CARD
           _buildReportCard(
+            isDark: isDark,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    _buildCardLabel('BIRTH NAKSHATRA'),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        Text(
-                          'Devata: Mitra',
-                          style: GoogleFonts.roboto(
-                            color: AppColors.goldPrimary,
-                            fontSize: 11,
-                            fontWeight: FontWeight.bold,
-                            shadows: _textShadows,
-                          ),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          'Rashi: Scorpio',
-                          style: GoogleFonts.roboto(
-                            color: Colors.white70,
-                            fontSize: 10,
-                            shadows: _textShadows,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'ANURADHA',
-                  style: GoogleFonts.cinzel(
-                    color: Colors.white,
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    shadows: _textShadows,
-                  ),
-                ),
-                Text(
-                  'Lord: Saturn - Pada 3',
-                  style: GoogleFonts.roboto(
-                    color: Colors.white70,
-                    fontSize: 12,
-                    shadows: _textShadows,
-                  ),
-                ),
+                _buildCardLabel('PLANETARY STRENGTHS (SHADBALA)', isDark),
                 const SizedBox(height: 16),
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.03),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.white10, width: 1),
-                  ),
-                  child: Text(
-                    'Anuradha nakshatra natives are devoted, cooperative, and deeply spiritual. They are natural leaders with excellent organizational ability and a gift for bringing harmony to complex situations.',
-                    style: GoogleFonts.roboto(
-                      color: Colors.white70,
-                      fontSize: 12,
-                      height: 1.4,
-                      shadows: _textShadows,
-                    ),
-                  ),
-                ),
+                _buildShadbalaRow('♃ Jupiter (Guru)', 1.45, 'Exalted / Strong', Colors.green, isDark),
+                _buildShadbalaRow('☉ Sun (Surya)', 1.22, 'Strong', Colors.green, isDark),
+                _buildShadbalaRow('♂ Mars (Mangal)', 1.15, 'Average', Colors.amber, isDark),
+                _buildShadbalaRow('☽ Moon (Chandra)', 0.95, 'Moderate', Colors.orange, isDark),
+                _buildShadbalaRow('☿ Mercury (Budh)', 0.78, 'Debilitated / Weak', Colors.redAccent, isDark),
               ],
             ),
           ),
 
           // 5. DOSHA ANALYSIS CARD
           _buildReportCard(
+            isDark: isDark,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _buildCardLabel('DOSHA ANALYSIS'),
-                const SizedBox(height: 16),
-                _buildDoshaItem(
-                  'Mangal Dosha',
-                  'Not Present',
-                  'Mars is well-placed. No Mangal Dosha in this chart.',
-                  Colors.green,
-                ),
-                const SizedBox(height: 12),
-                _buildDoshaItem(
-                  'Sade Sati',
-                  'Active - 2nd Phase',
-                  'Saturn transiting over natal Moon. Duration: 2019-2028.',
-                  AppColors.goldOrange,
-                ),
-                const SizedBox(height: 12),
-                _buildDoshaItem(
-                  'Kaal Sarp Dosha',
-                  'Not Present',
-                  'All planets are outside the Rahu-Ketu axis.',
-                  Colors.green,
-                ),
-                const SizedBox(height: 12),
-                _buildDoshaItem(
-                  'Pitra Dosha',
-                  'Mild',
-                  'Sun in 12th house with Ketu influence. Minor remedies advised.',
-                  Colors.amber,
-                ),
+                _buildCardLabel('DOSHA & YOGA ANALYSIS', isDark),
+                const SizedBox(height: 14),
+                _buildDoshaItem('Mangal Dosha', 'NO DOSHA', 'Mars is well-aspected in the 10th house, nullifying harmful afflicting energy.', Colors.green, isDark),
+                const SizedBox(height: 10),
+                _buildDoshaItem('Kaal Sarp Dosha', 'PARTIAL (ANANT)', 'Planets are semi-hemmed between Rahu and Ketu. Regular worship of Lord Shiva is beneficial.', Colors.amber, isDark),
+                const SizedBox(height: 10),
+                _buildDoshaItem('Gaja Kesari Yoga', 'PRESENT ✨', 'Jupiter in quadrant with Moon creates supreme intellect, fame, and royal recognition.', Colors.green, isDark),
               ],
             ),
           ),
 
           // 6. SARVASHTAKAVARGA CARD
           _buildReportCard(
+            isDark: isDark,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _buildCardLabel('SARVASHTAKAVARGA'),
+                _buildCardLabel('SARVASHTAKAVARGA', isDark),
                 const SizedBox(height: 16),
-                _buildSarvashtakavargaRow('☉', 'Sun', 34),
-                _buildSarvashtakavargaRow('☽', 'Moon', 36),
-                _buildSarvashtakavargaRow('♂', 'Mars', 22),
-                _buildSarvashtakavargaRow('☿', 'Mercury', 27),
-                _buildSarvashtakavargaRow('♃', 'Jupiter', 39),
-                _buildSarvashtakavargaRow('♀', 'Venus', 31),
-                _buildSarvashtakavargaRow('♄', 'Saturn', 24),
+                _buildSarvashtakavargaRow('☉', 'Sun', 34, isDark),
+                _buildSarvashtakavargaRow('☽', 'Moon', 36, isDark),
+                _buildSarvashtakavargaRow('♂', 'Mars', 22, isDark),
+                _buildSarvashtakavargaRow('☿', 'Mercury', 27, isDark),
+                _buildSarvashtakavargaRow('♃', 'Jupiter', 39, isDark),
+                _buildSarvashtakavargaRow('♀', 'Venus', 31, isDark),
+                _buildSarvashtakavargaRow('♄', 'Saturn', 24, isDark),
               ],
             ),
           ),
 
           // 7. RECOMMENDED REMEDIES CARD
           _buildReportCard(
+            isDark: isDark,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _buildCardLabel('RECOMMENDED REMEDIES'),
+                _buildCardLabel('RECOMMENDED REMEDIES', isDark),
                 const SizedBox(height: 16),
-                _buildRemedyRow(
-                  Icons.diamond_outlined,
-                  Colors.blueAccent,
-                  'Yellow Sapphire (Pukhraj)',
-                  'Strengthen Jupiter • Ring finger, gold setting',
-                ),
+                _buildRemedyRow(Icons.diamond_outlined, Colors.blueAccent, 'Yellow Sapphire (Pukhraj)', 'Strengthen Jupiter • Ring finger, gold setting', isDark),
                 const SizedBox(height: 16),
-                _buildRemedyRow(
-                  Icons.fireplace_outlined,
-                  Colors.amberAccent,
-                  'Thursday Puja',
-                  'Offer bananas & sweets to Lord Vishnu',
-                ),
+                _buildRemedyRow(Icons.fireplace_outlined, Colors.amber, 'Thursday Puja', 'Offer bananas & sweets to Lord Vishnu', isDark),
                 const SizedBox(height: 16),
-                _buildRemedyRow(
-                  Icons.grain_outlined,
-                  Colors.redAccent,
-                  'Jupiter Mantra',
-                  'Om Gram Greem Graum Sah Guruve Namah - 108x',
-                ),
+                _buildRemedyRow(Icons.grain_outlined, Colors.redAccent, 'Jupiter Mantra', 'Om Gram Greem Graum Sah Guruve Namah - 108x', isDark),
                 const SizedBox(height: 16),
-                _buildRemedyRow(
-                  Icons.water_drop_outlined,
-                  Colors.lightBlueAccent,
-                  'Sun Offering',
-                  'Offer water to the Sun every morning facing east',
-                ),
+                _buildRemedyRow(Icons.water_drop_outlined, Colors.lightBlueAccent, 'Sun Offering', 'Offer water to the Sun every morning facing east', isDark),
               ],
             ),
           ),
@@ -1754,10 +1653,10 @@ class _KundaliFormScreenState extends State<KundaliFormScreen>
             onTap: () {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
-                  backgroundColor: AppColors.cardDark,
+                  backgroundColor: isDark ? AppColors.cardDark : AppColors.spaceLight,
                   content: Text(
                     'Downloading report in background...',
-                    style: GoogleFonts.roboto(color: AppColors.goldPrimary),
+                    style: GoogleFonts.roboto(color: goldColor, fontWeight: FontWeight.bold),
                   ),
                 ),
               );
@@ -1803,29 +1702,101 @@ class _KundaliFormScreenState extends State<KundaliFormScreen>
     );
   }
 
-  Widget _buildReportCard({required Widget child}) {
+  Widget _buildReportCard({required Widget child, required bool isDark}) {
+    final goldColor = AppColors.getGold(isDark);
+
     return Container(
       width: double.infinity,
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.05),
+        color: isDark ? Colors.white.withValues(alpha: 0.05) : const Color(0xF2FFFFFF),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.white24, width: 1.0),
+        border: Border.all(
+          color: isDark ? Colors.white24 : goldColor.withValues(alpha: 0.35),
+          width: 1.0,
+        ),
+        boxShadow: isDark
+            ? null
+            : [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.04),
+                  blurRadius: 10,
+                  offset: const Offset(0, 2),
+                ),
+              ],
       ),
       child: child,
     );
   }
 
-  Widget _buildCardLabel(String text) {
+  Widget _buildCardLabel(String text, bool isDark) {
     return Text(
       text,
       style: GoogleFonts.cinzel(
-        color: AppColors.goldPrimary,
+        color: AppColors.getGold(isDark),
         fontSize: 12,
         fontWeight: FontWeight.bold,
         letterSpacing: 1.0,
-        shadows: _textShadows,
+        shadows: AppColors.getTextShadows(isDark),
+      ),
+    );
+  }
+
+  Widget _buildShadbalaRow(
+    String planet,
+    double rupa,
+    String status,
+    Color statusColor,
+    bool isDark,
+  ) {
+    final textShadows = AppColors.getTextShadows(isDark);
+    final textColor = isDark ? Colors.white : AppColors.textPrimaryLight;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6.0),
+      child: Row(
+        children: [
+          Expanded(
+            flex: 3,
+            child: Text(
+              planet,
+              style: GoogleFonts.roboto(
+                color: textColor,
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                shadows: textShadows,
+              ),
+            ),
+          ),
+          Expanded(
+            flex: 2,
+            child: Text(
+              '${rupa.toStringAsFixed(2)} Rupa',
+              style: GoogleFonts.roboto(
+                color: isDark ? Colors.white70 : AppColors.textSecondaryLight,
+                fontSize: 11,
+                shadows: textShadows,
+              ),
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+            decoration: BoxDecoration(
+              color: statusColor.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(4),
+              border: Border.all(color: statusColor.withValues(alpha: 0.3), width: 1),
+            ),
+            child: Text(
+              status,
+              style: TextStyle(
+                color: statusColor,
+                fontSize: 9,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -1835,15 +1806,19 @@ class _KundaliFormScreenState extends State<KundaliFormScreen>
     String status,
     String description,
     Color badgeColor,
+    bool isDark,
   ) {
+    final textShadows = AppColors.getTextShadows(isDark);
+    final textColor = isDark ? Colors.white : AppColors.textPrimaryLight;
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.03),
+        color: isDark ? Colors.white.withValues(alpha: 0.03) : const Color(0xFFFAF7F0),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: Colors.white10,
+          color: isDark ? Colors.white10 : const Color(0x30D4A827),
           width: 1,
         ),
       ),
@@ -1856,10 +1831,10 @@ class _KundaliFormScreenState extends State<KundaliFormScreen>
               Text(
                 title,
                 style: GoogleFonts.roboto(
-                  color: Colors.white,
+                  color: textColor,
                   fontSize: 13,
                   fontWeight: FontWeight.bold,
-                  shadows: _textShadows,
+                  shadows: textShadows,
                 ),
               ),
               Container(
@@ -1887,9 +1862,9 @@ class _KundaliFormScreenState extends State<KundaliFormScreen>
           Text(
             description,
             style: GoogleFonts.roboto(
-              color: Colors.white70,
+              color: isDark ? Colors.white70 : AppColors.textSecondaryLight,
               fontSize: 11,
-              shadows: _textShadows,
+              shadows: textShadows,
             ),
           ),
         ],
@@ -1897,7 +1872,11 @@ class _KundaliFormScreenState extends State<KundaliFormScreen>
     );
   }
 
-  Widget _buildSarvashtakavargaRow(String symbol, String name, int score) {
+  Widget _buildSarvashtakavargaRow(String symbol, String name, int score, bool isDark) {
+    final goldColor = AppColors.getGold(isDark);
+    final textShadows = AppColors.getTextShadows(isDark);
+    final textColor = isDark ? Colors.white : AppColors.textPrimaryLight;
+
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6.0),
       child: Row(
@@ -1905,10 +1884,10 @@ class _KundaliFormScreenState extends State<KundaliFormScreen>
           Text(
             symbol,
             style: GoogleFonts.roboto(
-              color: AppColors.goldPrimary,
+              color: goldColor,
               fontSize: 15,
               fontWeight: FontWeight.bold,
-              shadows: _textShadows,
+              shadows: textShadows,
             ),
           ),
           const SizedBox(width: 10),
@@ -1917,10 +1896,10 @@ class _KundaliFormScreenState extends State<KundaliFormScreen>
             child: Text(
               name,
               style: GoogleFonts.roboto(
-                color: Colors.white,
+                color: textColor,
                 fontSize: 12,
                 fontWeight: FontWeight.w500,
-                shadows: _textShadows,
+                shadows: textShadows,
               ),
             ),
           ),
@@ -1929,7 +1908,7 @@ class _KundaliFormScreenState extends State<KundaliFormScreen>
               borderRadius: BorderRadius.circular(4),
               child: Container(
                 height: 8,
-                color: Colors.white12,
+                color: isDark ? Colors.white12 : const Color(0x20D4A827),
                 child: FractionallySizedBox(
                   alignment: Alignment.centerLeft,
                   widthFactor: score / 50.0,
@@ -1946,10 +1925,10 @@ class _KundaliFormScreenState extends State<KundaliFormScreen>
           Text(
             '$score',
             style: GoogleFonts.roboto(
-              color: Colors.white,
+              color: textColor,
               fontSize: 12,
               fontWeight: FontWeight.bold,
-              shadows: _textShadows,
+              shadows: textShadows,
             ),
           ),
         ],
@@ -1962,7 +1941,11 @@ class _KundaliFormScreenState extends State<KundaliFormScreen>
     Color iconColor,
     String title,
     String subtitle,
+    bool isDark,
   ) {
+    final textShadows = AppColors.getTextShadows(isDark);
+    final textColor = isDark ? Colors.white : AppColors.textPrimaryLight;
+
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1987,19 +1970,19 @@ class _KundaliFormScreenState extends State<KundaliFormScreen>
               Text(
                 title,
                 style: GoogleFonts.roboto(
-                  color: Colors.white,
+                  color: textColor,
                   fontSize: 13,
                   fontWeight: FontWeight.bold,
-                  shadows: _textShadows,
+                  shadows: textShadows,
                 ),
               ),
               const SizedBox(height: 2),
               Text(
                 subtitle,
                 style: GoogleFonts.roboto(
-                  color: Colors.white70,
+                  color: isDark ? Colors.white70 : AppColors.textSecondaryLight,
                   fontSize: 11,
-                  shadows: _textShadows,
+                  shadows: textShadows,
                 ),
               ),
             ],
@@ -2010,21 +1993,23 @@ class _KundaliFormScreenState extends State<KundaliFormScreen>
   }
 
   // --- Helper Widgets for Screen elements ---
-  Widget _buildLabelRow(IconData? icon, String text) {
+  Widget _buildLabelRow(IconData? icon, String text, bool isDark) {
+    final goldColor = AppColors.getGold(isDark);
+
     return Row(
       children: [
         if (icon != null) ...[
-          Icon(icon, color: AppColors.goldPrimary, size: 16),
+          Icon(icon, color: goldColor, size: 16),
           const SizedBox(width: 8),
         ],
         Text(
           text,
           style: GoogleFonts.cinzel(
-            color: AppColors.goldPrimary,
+            color: goldColor,
             fontSize: 12,
             fontWeight: FontWeight.w700,
             letterSpacing: 1.2,
-            shadows: _textShadows,
+            shadows: AppColors.getTextShadows(isDark),
           ),
         ),
       ],
@@ -2034,20 +2019,25 @@ class _KundaliFormScreenState extends State<KundaliFormScreen>
   Widget _buildTextField({
     required TextEditingController controller,
     required String hintText,
+    required bool isDark,
     required String? Function(String?)? validator,
   }) {
+    final goldColor = AppColors.getGold(isDark);
+    final textColor = AppColors.getTextPrimary(isDark);
+    final hintColor = isDark ? Colors.white60 : AppColors.textMutedLight;
+
     return TextFormField(
       controller: controller,
       validator: validator,
-      style: GoogleFonts.roboto(color: AppColors.textPrimary, fontSize: 15),
+      style: GoogleFonts.roboto(color: textColor, fontSize: 15),
       decoration: InputDecoration(
         hintText: hintText,
         hintStyle: GoogleFonts.roboto(
-          color: Colors.white60,
+          color: hintColor,
           fontSize: 15,
-          shadows: _textShadows,
+          shadows: AppColors.getTextShadows(isDark),
         ),
-        fillColor: Colors.transparent,
+        fillColor: isDark ? Colors.transparent : Colors.white.withValues(alpha: 0.65),
         filled: true,
         contentPadding: const EdgeInsets.symmetric(
           horizontal: 20,
@@ -2056,14 +2046,14 @@ class _KundaliFormScreenState extends State<KundaliFormScreen>
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(30),
           borderSide: BorderSide(
-            color: AppColors.goldPrimary.withValues(alpha: 0.25),
+            color: isDark ? goldColor.withValues(alpha: 0.25) : const Color(0x35D4A827),
             width: 1.2,
           ),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(30),
-          borderSide: const BorderSide(
-            color: AppColors.goldPrimary,
+          borderSide: BorderSide(
+            color: goldColor,
             width: 1.5,
           ),
         ),
@@ -2082,24 +2072,29 @@ class _KundaliFormScreenState extends State<KundaliFormScreen>
   Widget _buildClickableField({
     required TextEditingController controller,
     required String hintText,
+    required bool isDark,
     required VoidCallback onTap,
     required String? Function(String?)? validator,
   }) {
+    final goldColor = AppColors.getGold(isDark);
+    final textColor = AppColors.getTextPrimary(isDark);
+    final hintColor = isDark ? Colors.white60 : AppColors.textMutedLight;
+
     return GestureDetector(
       onTap: onTap,
       child: AbsorbPointer(
         child: TextFormField(
           controller: controller,
           validator: validator,
-          style: GoogleFonts.roboto(color: AppColors.textPrimary, fontSize: 15),
+          style: GoogleFonts.roboto(color: textColor, fontSize: 15),
           decoration: InputDecoration(
             hintText: hintText,
             hintStyle: GoogleFonts.roboto(
-              color: Colors.white60,
+              color: hintColor,
               fontSize: 15,
-              shadows: _textShadows,
+              shadows: AppColors.getTextShadows(isDark),
             ),
-            fillColor: Colors.transparent,
+            fillColor: isDark ? Colors.transparent : Colors.white.withValues(alpha: 0.65),
             filled: true,
             contentPadding: const EdgeInsets.symmetric(
               horizontal: 20,
@@ -2108,14 +2103,14 @@ class _KundaliFormScreenState extends State<KundaliFormScreen>
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(30),
               borderSide: BorderSide(
-                color: AppColors.goldPrimary.withValues(alpha: 0.25),
+                color: isDark ? goldColor.withValues(alpha: 0.25) : const Color(0x35D4A827),
                 width: 1.2,
               ),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(30),
-              borderSide: const BorderSide(
-                color: AppColors.goldPrimary,
+              borderSide: BorderSide(
+                color: goldColor,
                 width: 1.5,
               ),
             ),
@@ -2133,8 +2128,10 @@ class _KundaliFormScreenState extends State<KundaliFormScreen>
     );
   }
 
-  Widget _buildGenderButton(String gender) {
+  Widget _buildGenderButton(String gender, bool isDark) {
     final isSelected = _selectedGender == gender;
+    final goldColor = AppColors.getGold(isDark);
+
     return Expanded(
       child: GestureDetector(
         onTap: () {
@@ -2145,12 +2142,14 @@ class _KundaliFormScreenState extends State<KundaliFormScreen>
         child: Container(
           height: 48,
           decoration: BoxDecoration(
-            color: isSelected ? const Color(0xFFCE7C2E) : Colors.transparent,
+            color: isSelected
+                ? const Color(0xFFCE7C2E)
+                : (isDark ? Colors.transparent : Colors.white.withValues(alpha: 0.7)),
             borderRadius: BorderRadius.circular(24),
             border: Border.all(
               color: isSelected
                   ? Colors.transparent
-                  : AppColors.goldPrimary.withValues(alpha: 0.25),
+                  : goldColor.withValues(alpha: isDark ? 0.25 : 0.4),
               width: 1.2,
             ),
           ),
@@ -2158,11 +2157,13 @@ class _KundaliFormScreenState extends State<KundaliFormScreen>
             child: Text(
               gender,
               style: GoogleFonts.cinzel(
-                color: isSelected ? Colors.black : Colors.white,
-                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                color: isSelected
+                    ? Colors.black
+                    : (isDark ? Colors.white : AppColors.textPrimaryLight),
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
                 fontSize: 13,
                 letterSpacing: 0.5,
-                shadows: isSelected ? null : _textShadows,
+                shadows: isSelected ? null : AppColors.getTextShadows(isDark),
               ),
             ),
           ),
@@ -2176,10 +2177,18 @@ class _KundaliFormScreenState extends State<KundaliFormScreen>
 // CUSTOM PAINTER FOR NORTH INDIAN KUNDALI
 // ==========================================
 class KundaliChartPainter extends CustomPainter {
+  final bool isDark;
+
+  KundaliChartPainter({this.isDark = true});
+
   @override
   void paint(Canvas canvas, Size size) {
+    final goldStrokeColor = isDark
+        ? AppColors.goldPrimary.withValues(alpha: 0.7)
+        : AppColors.goldPrimaryDark;
+
     final paint = Paint()
-      ..color = AppColors.goldPrimary.withValues(alpha: 0.7)
+      ..color = goldStrokeColor
       ..strokeWidth = 1.5
       ..style = PaintingStyle.stroke;
 
@@ -2201,15 +2210,19 @@ class KundaliChartPainter extends CustomPainter {
 
     // 4. Draw central circle to shield lines and show Lagna details
     final bgPaint = Paint()
-      ..color = const Color(0xFF0C071D)
+      ..color = isDark ? const Color(0xFF0C071D) : const Color(0xFFFFFDF8)
       ..style = PaintingStyle.fill;
     canvas.drawCircle(Offset(w / 2, h / 2), 32, bgPaint);
 
     final borderPaint = Paint()
-      ..color = AppColors.goldPrimary.withValues(alpha: 0.35)
+      ..color = isDark
+          ? AppColors.goldPrimary.withValues(alpha: 0.35)
+          : AppColors.goldPrimaryDark.withValues(alpha: 0.5)
       ..strokeWidth = 1.2
       ..style = PaintingStyle.stroke;
     canvas.drawCircle(Offset(w / 2, h / 2), 32, borderPaint);
+
+    final textShadows = AppColors.getTextShadows(isDark);
 
     // Paint Lagna center text
     _drawRichText(
@@ -2217,11 +2230,11 @@ class KundaliChartPainter extends CustomPainter {
       TextSpan(
         text: 'LAGNA',
         style: GoogleFonts.cinzel(
-          color: AppColors.goldPrimary,
+          color: goldStrokeColor,
           fontSize: 8,
           fontWeight: FontWeight.bold,
           letterSpacing: 0.5,
-          shadows: _textShadows,
+          shadows: textShadows,
         ),
       ),
       Offset(w / 2, h / 2 - 8),
@@ -2231,10 +2244,10 @@ class KundaliChartPainter extends CustomPainter {
       canvas,
       TextSpan(
         style: GoogleFonts.roboto(
-          color: AppColors.goldPrimary,
+          color: goldStrokeColor,
           fontSize: 10,
           fontWeight: FontWeight.bold,
-          shadows: _textShadows,
+          shadows: textShadows,
         ),
         children: const [
           TextSpan(
@@ -2249,15 +2262,18 @@ class KundaliChartPainter extends CustomPainter {
 
     // 5. Draw House numbers and Planets
     final numStyle = TextStyle(
-      color: AppColors.goldPrimary.withValues(alpha: 0.7),
+      color: isDark
+          ? AppColors.goldPrimary.withValues(alpha: 0.7)
+          : AppColors.goldPrimaryDark,
       fontSize: 10,
-      shadows: _textShadows,
+      fontWeight: FontWeight.w600,
+      shadows: textShadows,
     );
     final planetStyle = TextStyle(
-      color: AppColors.textPrimary,
+      color: isDark ? AppColors.textPrimary : AppColors.textPrimaryLight,
       fontSize: 12,
       fontWeight: FontWeight.bold,
-      shadows: _textShadows,
+      shadows: textShadows,
     );
 
     // House 1 (top center)
@@ -2407,5 +2423,6 @@ class KundaliChartPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+  bool shouldRepaint(covariant KundaliChartPainter oldDelegate) =>
+      oldDelegate.isDark != isDark;
 }
