@@ -6,6 +6,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_assets.dart';
+import '../../../core/localization/app_localizations.dart';
 import '../../providers/theme_provider.dart';
 import '../../widgets/custom_button.dart';
 import '../../widgets/custom_text_field.dart';
@@ -173,16 +174,16 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'FORGET PASSWORD',
+            context.tr('forget_password_title'),
             style: GoogleFonts.cinzel(
-              fontSize: 32,
+              fontSize: 30,
               fontWeight: FontWeight.w700,
               color: textPrimary,
             ),
           ),
           const SizedBox(height: 36),
           CustomTextField(
-            label: 'Email',
+            label: context.tr('email'),
             hintText: 'you@example.com',
             controller: _emailController,
             keyboardType: TextInputType.emailAddress,
@@ -195,7 +196,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
           ),
           const SizedBox(height: 36),
           CustomButton(
-            text: 'REQUEST OTP \u2794',
+            text: context.tr('request_otp'),
             onPressed: () {
               if (_emailFormKey.currentState!.validate()) {
                 _nextStep();
@@ -216,7 +217,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'VERIFICATION',
+          context.tr('verification'),
           style: GoogleFonts.cinzel(
             fontSize: 32,
             fontWeight: FontWeight.w700,
@@ -225,7 +226,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
         ),
         const SizedBox(height: 36),
         Text(
-          'ENTER OTP',
+          context.tr('enter_otp'),
           style: GoogleFonts.cinzel(
             color: goldColor,
             fontSize: 12,
@@ -287,14 +288,14 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
         ),
         const SizedBox(height: 36),
         CustomButton(
-          text: 'ENTER \u2794',
+          text: context.tr('enter_btn'),
           onPressed: _nextStep,
         ),
         const SizedBox(height: 24),
         Center(
           child: _resendTimerSeconds > 0
               ? Text(
-                  'RESEND OTP (00:${_resendTimerSeconds.toString().padLeft(2, '0')})',
+                  "${context.tr('resend_otp')} (00:${_resendTimerSeconds.toString().padLeft(2, '0')})",
                   style: GoogleFonts.roboto(
                     color: AppColors.getTextMuted(isDark),
                     fontSize: 14,
@@ -304,7 +305,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
               : TextButton(
                   onPressed: _startTimer,
                   child: Text(
-                    'RESEND OTP',
+                    context.tr('resend_otp'),
                     style: GoogleFonts.roboto(
                       color: AppColors.goldOrange,
                       fontSize: 14,
@@ -327,16 +328,16 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'CREATE NEW PASSWORD',
+            context.tr('create_new_password'),
             style: GoogleFonts.cinzel(
-              fontSize: 32,
+              fontSize: 26,
               fontWeight: FontWeight.w700,
               color: textPrimary,
             ),
           ),
           const SizedBox(height: 36),
           CustomTextField(
-            label: 'New Password',
+            label: context.tr('new_password'),
             hintText: '••••••••',
             controller: _passwordController,
             obscureText: true,
@@ -349,7 +350,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
           ),
           const SizedBox(height: 20),
           CustomTextField(
-            label: 'Confirm Password',
+            label: context.tr('confirm_password'),
             hintText: '••••••••',
             controller: _confirmPasswordController,
             obscureText: true,
@@ -362,7 +363,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
           ),
           const SizedBox(height: 36),
           CustomButton(
-            text: 'VERIFY \u2794',
+            text: context.tr('verify_btn'),
             onPressed: () {
               if (_passwordFormKey.currentState!.validate()) {
                 _nextStep();
@@ -383,15 +384,15 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Text(
-            'PASSWORD CHANGED',
+            context.tr('password_changed_title'),
             style: GoogleFonts.cinzel(
-              fontSize: 32,
+              fontSize: 28,
               fontWeight: FontWeight.w700,
               color: textPrimary,
             ),
           ),
           const SizedBox(height: 50),
-          // Shield Verified Icon matching the mockup
+          // Shield Verified Icon
           Container(
             width: 120,
             height: 120,
@@ -416,7 +417,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
           ),
           const SizedBox(height: 8),
           Text(
-            'Your password has been\nchanged successfully.',
+            context.tr('password_changed_success'),
             textAlign: TextAlign.center,
             style: GoogleFonts.roboto(
               color: AppColors.getTextSecondary(isDark),
@@ -425,7 +426,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
           ),
           const SizedBox(height: 48),
           CustomButton(
-            text: 'HOME \u2794',
+            text: context.tr('home_btn'),
             onPressed: () {
               context.go('/auth?tab=login');
             },

@@ -4,7 +4,9 @@ import 'package:provider/provider.dart';
 import 'package:video_player/video_player.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_assets.dart';
+import '../../../core/localization/app_localizations.dart';
 import '../../providers/theme_provider.dart';
+import '../../providers/language_provider.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -46,9 +48,107 @@ class _SettingsScreenState extends State<SettingsScreen> {
     super.dispose();
   }
 
+  void _showLanguagePicker(BuildContext context, bool isDark) {
+    final languageProvider = Provider.of<LanguageProvider>(context, listen: false);
+    final goldColor = AppColors.getGold(isDark);
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return Container(
+          decoration: BoxDecoration(
+            color: isDark ? AppColors.spaceDark : AppColors.spaceLight,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+            border: Border(
+              top: BorderSide(color: goldColor, width: 1.5),
+            ),
+          ),
+          padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                context.tr('select_language'),
+                style: GoogleFonts.cinzel(
+                  color: goldColor,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 1.0,
+                ),
+              ),
+              const SizedBox(height: 16),
+              Flexible(
+                child: ListView.builder(
+                  shrinkWrap: true,
+                  itemCount: LanguageProvider.supportedLanguages.length,
+                  itemBuilder: (context, index) {
+                    final lang = LanguageProvider.supportedLanguages[index];
+                    final isSelected = lang.code == languageProvider.currentLanguageCode;
+
+                    return ListTile(
+                      contentPadding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+                      leading: Container(
+                        width: 40,
+                        height: 40,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: isSelected
+                              ? goldColor.withValues(alpha: 0.2)
+                              : (isDark ? Colors.white12 : const Color(0x20D4A827)),
+                          border: Border.all(
+                            color: isSelected ? goldColor : Colors.transparent,
+                            width: 1.5,
+                          ),
+                        ),
+                        child: Center(
+                          child: Text(
+                            lang.scriptSymbol,
+                            style: GoogleFonts.roboto(
+                              color: isSelected ? goldColor : (isDark ? Colors.white : AppColors.textPrimaryLight),
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
+                          ),
+                        ),
+                      ),
+                      title: Text(
+                        lang.nativeName,
+                        style: GoogleFonts.roboto(
+                          color: isSelected ? goldColor : (isDark ? Colors.white : AppColors.textPrimaryLight),
+                          fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                          fontSize: 15,
+                        ),
+                      ),
+                      subtitle: Text(
+                        lang.englishName,
+                        style: GoogleFonts.roboto(
+                          color: isDark ? Colors.white54 : AppColors.textSecondaryLight,
+                          fontSize: 12,
+                        ),
+                      ),
+                      trailing: isSelected
+                          ? Icon(Icons.check_circle_rounded, color: goldColor)
+                          : null,
+                      onTap: () {
+                        languageProvider.setLanguageCode(lang.code);
+                        Navigator.pop(context);
+                      },
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final themeProvider = Provider.of<ThemeProvider>(context);
+    final languageProvider = Provider.of<LanguageProvider>(context);
     final isDark = themeProvider.isDarkMode;
 
     return Scaffold(
@@ -57,8 +157,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
         child: Stack(
           children: [
             // Background
-            // In Light Mode: LIGHT.png
-            // In Dark Mode: Video / home_bg.png
             Positioned.fill(
               child: isDark
                   ? (_isVideoInitialized && _videoController != null
@@ -93,7 +191,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               bottom: false,
               child: AnimatedSwitcher(
                 duration: const Duration(milliseconds: 400),
-                child: _buildActiveView(isDark, themeProvider),
+                child: _buildActiveView(isDark, themeProvider, languageProvider),
               ),
             ),
           ],
@@ -102,23 +200,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  Widget _buildActiveView(bool isDark, ThemeProvider themeProvider) {
+  Widget _buildActiveView(bool isDark, ThemeProvider themeProvider, LanguageProvider languageProvider) {
     switch (_activeView) {
       case 0:
-        return _buildMainSettingsList(isDark, themeProvider);
+        return _buildMainSettingsList(isDark, themeProvider, languageProvider);
       case 1:
         return _buildPrivacyPolicyView(isDark);
       case 2:
         return _buildTermsView(isDark);
       default:
-        return _buildMainSettingsList(isDark, themeProvider);
+        return _buildMainSettingsList(isDark, themeProvider, languageProvider);
     }
   }
 
   // ==========================================
   // VIEW 1: MAIN SETTINGS & CONTACT
   // ==========================================
-  Widget _buildMainSettingsList(bool isDark, ThemeProvider themeProvider) {
+  Widget _buildMainSettingsList(bool isDark, ThemeProvider themeProvider, LanguageProvider languageProvider) {
     final goldColor = AppColors.getGold(isDark);
     final textShadows = AppColors.getTextShadows(isDark);
 
@@ -135,7 +233,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
           // Section Title: APPEARANCE
           Text(
-            'APPEARANCE',
+            context.tr('appearance'),
             style: GoogleFonts.cinzel(
               color: goldColor,
               fontSize: 12,
@@ -179,7 +277,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        isDark ? 'Dark Theme Active' : 'Light Theme Active',
+                        isDark ? context.tr('theme_active_dark') : context.tr('theme_active_light'),
                         style: GoogleFonts.roboto(
                           color: isDark ? Colors.white : AppColors.textPrimaryLight,
                           fontSize: 14,
@@ -189,7 +287,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        isDark ? 'Switch to radiant light cosmic theme' : 'Switch to deep space dark theme',
+                        isDark ? context.tr('theme_desc_dark') : context.tr('theme_desc_light'),
                         style: GoogleFonts.roboto(
                           color: isDark ? Colors.white54 : AppColors.textSecondaryLight,
                           fontSize: 11,
@@ -214,9 +312,99 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
           const SizedBox(height: 24),
 
+          // Section Title: LANGUAGE
+          Text(
+            context.tr('language'),
+            style: GoogleFonts.cinzel(
+              color: goldColor,
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 1.0,
+              shadows: textShadows,
+            ),
+          ),
+          const SizedBox(height: 12),
+
+          // Language Selector Tile
+          GestureDetector(
+            onTap: () => _showLanguagePicker(context, isDark),
+            child: Container(
+              padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+              decoration: BoxDecoration(
+                color: isDark ? Colors.white.withValues(alpha: 0.05) : const Color(0xF5FFFFFF),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: isDark ? Colors.white24 : goldColor.withValues(alpha: 0.35),
+                  width: 1.0,
+                ),
+                boxShadow: isDark
+                    ? null
+                    : [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.04),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.language_rounded,
+                    color: goldColor,
+                    size: 22,
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          languageProvider.currentLanguageName,
+                          style: GoogleFonts.roboto(
+                            color: isDark ? Colors.white : AppColors.textPrimaryLight,
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                            shadows: textShadows,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          context.tr('language_desc'),
+                          style: GoogleFonts.roboto(
+                            color: isDark ? Colors.white54 : AppColors.textSecondaryLight,
+                            fontSize: 11,
+                            shadows: textShadows,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: goldColor.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: goldColor.withValues(alpha: 0.4), width: 1),
+                    ),
+                    child: Text(
+                      languageProvider.currentLanguageCode.toUpperCase(),
+                      style: GoogleFonts.cinzel(
+                        color: goldColor,
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 24),
+
           // Section Title: CONTACT US
           Text(
-            'CONTACT US',
+            context.tr('contact_us'),
             style: GoogleFonts.cinzel(
               color: goldColor,
               fontSize: 12,
@@ -252,28 +440,28 @@ class _SettingsScreenState extends State<SettingsScreen> {
               children: [
                 _buildContactItem(
                   icon: Icons.phone_outlined,
-                  label: 'Phone',
+                  label: context.tr('phone'),
                   value: '+91 98765 43210',
                   isDark: isDark,
                 ),
                 _buildDivider(isDark),
                 _buildContactItem(
                   icon: Icons.mail_outline_rounded,
-                  label: 'Email',
+                  label: context.tr('email'),
                   value: 'contact@astroramji.com',
                   isDark: isDark,
                 ),
                 _buildDivider(isDark),
                 _buildContactItem(
                   icon: Icons.location_on_outlined,
-                  label: 'Address',
+                  label: context.tr('address'),
                   value: '123 Brahmin Colony, Varanasi, UP 221001',
                   isDark: isDark,
                 ),
                 _buildDivider(isDark),
                 _buildContactItem(
                   icon: Icons.language_outlined,
-                  label: 'Website',
+                  label: context.tr('website'),
                   value: 'www.Astroramji.com',
                   isDark: isDark,
                 ),
@@ -285,8 +473,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
           // Action Menu: Privacy Policy
           _buildActionMenuItem(
             icon: Icons.privacy_tip_outlined,
-            title: 'Privacy Policy',
-            subtitle: 'How we use your data',
+            title: context.tr('privacy_policy'),
+            subtitle: context.tr('privacy_sub'),
             isDark: isDark,
             onTap: () => setState(() => _activeView = 1),
           ),
@@ -295,8 +483,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
           // Action Menu: Terms & Conditions
           _buildActionMenuItem(
             icon: Icons.description_outlined,
-            title: 'Terms of Service',
-            subtitle: 'Usage guidelines',
+            title: context.tr('terms_of_service'),
+            subtitle: context.tr('terms_sub'),
             isDark: isDark,
             onTap: () => setState(() => _activeView = 2),
           ),
@@ -305,7 +493,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           // Action Menu: Sign Out
           _buildActionMenuItem(
             icon: Icons.logout_rounded,
-            title: 'Sign Out',
+            title: context.tr('sign_out'),
             subtitle: '',
             isSignOut: true,
             isDark: isDark,
@@ -350,7 +538,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     const Icon(Icons.delete_outline_rounded, color: Colors.white, size: 20),
                     const SizedBox(width: 8),
                     Text(
-                      'Delete Account',
+                      context.tr('delete_account'),
                       style: GoogleFonts.roboto(
                         color: Colors.white,
                         fontSize: 15,
@@ -383,7 +571,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         children: [
           _buildSubHeaderRow(isDark),
           const SizedBox(height: 20),
-          _buildDetailTitleBadge('PRIVACY POLICY', isDark),
+          _buildDetailTitleBadge(context.tr('privacy_policy').toUpperCase(), isDark),
           const SizedBox(height: 8),
           Text(
             'Last updated: August 2026',
@@ -446,7 +634,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         children: [
           _buildSubHeaderRow(isDark),
           const SizedBox(height: 20),
-          _buildDetailTitleBadge('TERMS & CONDITIONS', isDark),
+          _buildDetailTitleBadge(context.tr('terms_of_service').toUpperCase(), isDark),
           const SizedBox(height: 8),
           Text(
             'Effective: August 2026',
@@ -773,7 +961,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         return AlertDialog(
           backgroundColor: isDark ? AppColors.cardDark : Colors.white,
           title: Text(
-            'DELETE ACCOUNT',
+            context.tr('delete_account_title'),
             style: GoogleFonts.cinzel(
               color: Colors.redAccent,
               fontWeight: FontWeight.bold,
@@ -782,7 +970,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
           ),
           content: Text(
-            'Are you sure you want to permanently delete your account? This action cannot be undone.',
+            context.tr('delete_confirm_msg'),
             style: GoogleFonts.roboto(
               color: isDark ? Colors.white70 : AppColors.textSecondaryLight,
               fontSize: 13,
@@ -792,7 +980,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             TextButton(
               onPressed: () => Navigator.pop(context),
               child: Text(
-                'CANCEL',
+                context.tr('cancel'),
                 style: GoogleFonts.roboto(
                   color: isDark ? Colors.white60 : AppColors.textMutedLight,
                   fontWeight: FontWeight.bold,
@@ -813,7 +1001,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 );
               },
               child: Text(
-                'DELETE',
+                context.tr('delete'),
                 style: GoogleFonts.roboto(color: Colors.redAccent, fontWeight: FontWeight.bold),
               ),
             ),

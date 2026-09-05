@@ -24,7 +24,9 @@ class AppAssets {
   static const String kundaliButton = 'assets/images/Component/kundalibutton.png';
   static const String kundaliMatchingButton = 'assets/images/Component/kundalimatchingbutton.png';
   static const String jupiter = 'assets/images/Component/jupitar.png';
+  static const String jupitar = 'assets/images/Component/jupitar.png';
   static const String rashiChakra = 'assets/images/Component/rashichakra.png';
   static const String mangalDosha = 'assets/images/Component/nomangaldosha.png';
+  static const String noMangalDosha = 'assets/images/Component/nomangaldosha.png';
   static const String sadeSati = 'assets/images/Component/sadesati.png';
 }

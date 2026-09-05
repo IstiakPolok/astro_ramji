@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_assets.dart';
 import '../../../core/constants/app_text_styles.dart';
+import '../../../core/localization/app_localizations.dart';
 import '../../providers/theme_provider.dart';
 import '../../widgets/custom_button.dart';
 
@@ -53,7 +54,7 @@ class WelcomePage extends StatelessWidget {
                     const Spacer(),
                     // Title
                     Text(
-                      'DISCOVER YOUR\nCOSMIC BLUEPRINT',
+                      context.tr('discover_cosmic'),
                       textAlign: TextAlign.center,
                       style: AppTextStyles.headline.copyWith(
                         fontSize: 24,
@@ -65,7 +66,7 @@ class WelcomePage extends StatelessWidget {
                     const SizedBox(height: 16),
                     // Description
                     Text(
-                      'Generate your natal birth chart, explore planetary positions, and find cosmic compatibility with your partner.',
+                      context.tr('welcome_sub'),
                       textAlign: TextAlign.center,
                       style: AppTextStyles.subheadline.copyWith(
                         color: AppColors.getTextSecondary(isDark),
@@ -75,14 +76,14 @@ class WelcomePage extends StatelessWidget {
                     const Spacer(),
                     // Buttons
                     CustomButton(
-                      text: 'GET STARTED',
+                      text: context.tr('get_started'),
                       onPressed: () {
                         context.push('/auth?tab=signup');
                       },
                     ),
                     const SizedBox(height: 16),
                     CustomButton(
-                      text: 'I already have an account',
+                      text: context.tr('already_have_account'),
                       isGradient: false,
                       onPressed: () {
                         context.push('/auth?tab=login');

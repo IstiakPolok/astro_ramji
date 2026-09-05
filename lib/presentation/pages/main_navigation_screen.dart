@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../../core/constants/app_colors.dart';
+import '../../core/localization/app_localizations.dart';
 import '../providers/theme_provider.dart';
 import 'home/home_page.dart';
 import 'kundali/kundali_form_screen.dart';
@@ -84,8 +85,8 @@ class MainNavigationScreenState extends State<MainNavigationScreen> {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              _buildNavItem(0, Icons.home_outlined, 'HOME', isDark, activeColor, inactiveColor),
-              _buildNavItem(1, Icons.auto_awesome_outlined, 'KUNDALI', isDark, activeColor, inactiveColor),
+              _buildNavItem(0, Icons.home_outlined, context.tr('nav_home'), isDark, activeColor, inactiveColor),
+              _buildNavItem(1, Icons.auto_awesome_outlined, context.tr('nav_kundali'), isDark, activeColor, inactiveColor),
 
               // Glowing Floating center sun button
               GestureDetector(
@@ -125,8 +126,8 @@ class MainNavigationScreenState extends State<MainNavigationScreen> {
                 ),
               ),
 
-              _buildNavItem(3, Icons.favorite_border_rounded, 'MATCHING', isDark, activeColor, inactiveColor),
-              _buildNavItem(4, Icons.person_outline_rounded, 'ACCOUNT', isDark, activeColor, inactiveColor),
+              _buildNavItem(3, Icons.favorite_border_rounded, context.tr('nav_matching'), isDark, activeColor, inactiveColor),
+              _buildNavItem(4, Icons.person_outline_rounded, context.tr('nav_account'), isDark, activeColor, inactiveColor),
             ],
           ),
         ),

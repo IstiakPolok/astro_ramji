@@ -4,10 +4,12 @@ import 'package:provider/provider.dart';
 import 'package:video_player/video_player.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_assets.dart';
+import '../../../core/localization/app_localizations.dart';
 import '../../providers/theme_provider.dart';
 
 class ZodiacSign {
-  final String name;
+  final String keyName;
+  final String fallbackName;
   final String sanskritName;
   final String symbol;
   final String dateRange;
@@ -23,7 +25,8 @@ class ZodiacSign {
   final int luckyNumber;
 
   const ZodiacSign({
-    required this.name,
+    required this.keyName,
+    required this.fallbackName,
     required this.sanskritName,
     required this.symbol,
     required this.dateRange,
@@ -59,7 +62,8 @@ class _HoroscopeScreenState extends State<HoroscopeScreen> {
 
   final List<ZodiacSign> _zodiacs = const [
     ZodiacSign(
-      name: 'Aries',
+      keyName: 'aries',
+      fallbackName: 'Aries',
       sanskritName: 'Mesha',
       symbol: '♈',
       dateRange: 'Mar 21 - Apr 19',
@@ -75,7 +79,8 @@ class _HoroscopeScreenState extends State<HoroscopeScreen> {
       luckyNumber: 9,
     ),
     ZodiacSign(
-      name: 'Taurus',
+      keyName: 'taurus',
+      fallbackName: 'Taurus',
       sanskritName: 'Vrishabha',
       symbol: '♉',
       dateRange: 'Apr 20 - May 20',
@@ -91,7 +96,8 @@ class _HoroscopeScreenState extends State<HoroscopeScreen> {
       luckyNumber: 6,
     ),
     ZodiacSign(
-      name: 'Gemini',
+      keyName: 'gemini',
+      fallbackName: 'Gemini',
       sanskritName: 'Mithuna',
       symbol: '♊',
       dateRange: 'May 21 - Jun 20',
@@ -107,7 +113,8 @@ class _HoroscopeScreenState extends State<HoroscopeScreen> {
       luckyNumber: 5,
     ),
     ZodiacSign(
-      name: 'Cancer',
+      keyName: 'cancer',
+      fallbackName: 'Cancer',
       sanskritName: 'Karka',
       symbol: '♋',
       dateRange: 'Jun 21 - Jul 22',
@@ -123,7 +130,8 @@ class _HoroscopeScreenState extends State<HoroscopeScreen> {
       luckyNumber: 2,
     ),
     ZodiacSign(
-      name: 'Leo',
+      keyName: 'leo',
+      fallbackName: 'Leo',
       sanskritName: 'Simha',
       symbol: '♌',
       dateRange: 'Jul 23 - Aug 22',
@@ -139,7 +147,8 @@ class _HoroscopeScreenState extends State<HoroscopeScreen> {
       luckyNumber: 1,
     ),
     ZodiacSign(
-      name: 'Virgo',
+      keyName: 'virgo',
+      fallbackName: 'Virgo',
       sanskritName: 'Kanya',
       symbol: '♍',
       dateRange: 'Aug 23 - Sep 22',
@@ -155,7 +164,8 @@ class _HoroscopeScreenState extends State<HoroscopeScreen> {
       luckyNumber: 3,
     ),
     ZodiacSign(
-      name: 'Libra',
+      keyName: 'libra',
+      fallbackName: 'Libra',
       sanskritName: 'Tula',
       symbol: '♎',
       dateRange: 'Sep 23 - Oct 22',
@@ -171,7 +181,8 @@ class _HoroscopeScreenState extends State<HoroscopeScreen> {
       luckyNumber: 7,
     ),
     ZodiacSign(
-      name: 'Scorpio',
+      keyName: 'scorpio',
+      fallbackName: 'Scorpio',
       sanskritName: 'Vrishchika',
       symbol: '♏',
       dateRange: 'Oct 23 - Nov 21',
@@ -187,7 +198,8 @@ class _HoroscopeScreenState extends State<HoroscopeScreen> {
       luckyNumber: 8,
     ),
     ZodiacSign(
-      name: 'Sagittarius',
+      keyName: 'sagittarius',
+      fallbackName: 'Sagittarius',
       sanskritName: 'Dhanu',
       symbol: '♐',
       dateRange: 'Nov 22 - Dec 21',
@@ -203,7 +215,8 @@ class _HoroscopeScreenState extends State<HoroscopeScreen> {
       luckyNumber: 3,
     ),
     ZodiacSign(
-      name: 'Capricorn',
+      keyName: 'capricorn',
+      fallbackName: 'Capricorn',
       sanskritName: 'Makara',
       symbol: '♑',
       dateRange: 'Dec 22 - Jan 19',
@@ -219,7 +232,8 @@ class _HoroscopeScreenState extends State<HoroscopeScreen> {
       luckyNumber: 4,
     ),
     ZodiacSign(
-      name: 'Aquarius',
+      keyName: 'aquarius',
+      fallbackName: 'Aquarius',
       sanskritName: 'Kumbha',
       symbol: '♒',
       dateRange: 'Jan 20 - Feb 18',
@@ -235,7 +249,8 @@ class _HoroscopeScreenState extends State<HoroscopeScreen> {
       luckyNumber: 8,
     ),
     ZodiacSign(
-      name: 'Pisces',
+      keyName: 'pisces',
+      fallbackName: 'Pisces',
       sanskritName: 'Meena',
       symbol: '♓',
       dateRange: 'Feb 19 - Mar 20',
@@ -287,8 +302,6 @@ class _HoroscopeScreenState extends State<HoroscopeScreen> {
         child: Stack(
           children: [
             // Background
-            // In Light Mode: LIGHT3.png (Rashi Chakra backdrop)
-            // In Dark Mode: Video / home_bg.png
             Positioned.fill(
               child: isDark
                   ? (_isVideoInitialized && _videoController != null
@@ -360,7 +373,7 @@ class _HoroscopeScreenState extends State<HoroscopeScreen> {
     return Column(
       children: [
         Text(
-          'DAILY HOROSCOPE',
+          context.tr('daily_horoscope'),
           style: GoogleFonts.cinzel(
             color: textPrimary,
             fontSize: 24,
@@ -371,12 +384,13 @@ class _HoroscopeScreenState extends State<HoroscopeScreen> {
         ),
         const SizedBox(height: 4),
         Text(
-          'Unlock your celestial forecasts and daily planetary ratings',
+          context.tr('horoscope_sub'),
           style: GoogleFonts.roboto(
             color: subtitleColor,
             fontSize: 11,
             shadows: textShadows,
           ),
+          textAlign: TextAlign.center,
         ),
       ],
     );
@@ -394,6 +408,8 @@ class _HoroscopeScreenState extends State<HoroscopeScreen> {
         itemBuilder: (context, index) {
           final zodiac = _zodiacs[index];
           final isSelected = _selectedSignIndex == index;
+          final localizedName = context.tr(zodiac.keyName);
+
           return GestureDetector(
             onTap: () {
               setState(() {
@@ -439,7 +455,7 @@ class _HoroscopeScreenState extends State<HoroscopeScreen> {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    zodiac.name,
+                    localizedName,
                     style: GoogleFonts.roboto(
                       color: isSelected
                           ? (isDark ? Colors.white : AppColors.textPrimaryLight)
@@ -468,9 +484,9 @@ class _HoroscopeScreenState extends State<HoroscopeScreen> {
       ),
       child: Row(
         children: [
-          Expanded(child: _buildTimeframeTab(0, 'TODAY', isDark)),
-          Expanded(child: _buildTimeframeTab(1, 'WEEKLY', isDark)),
-          Expanded(child: _buildTimeframeTab(2, 'YEARLY', isDark)),
+          Expanded(child: _buildTimeframeTab(0, context.tr('today'), isDark)),
+          Expanded(child: _buildTimeframeTab(1, context.tr('weekly'), isDark)),
+          Expanded(child: _buildTimeframeTab(2, context.tr('yearly'), isDark)),
         ],
       ),
     );
@@ -513,6 +529,7 @@ class _HoroscopeScreenState extends State<HoroscopeScreen> {
     final textShadows = AppColors.getTextShadows(isDark);
     final textPrimary = isDark ? Colors.white : AppColors.textPrimaryLight;
     final textSecondary = isDark ? Colors.white70 : AppColors.textSecondaryLight;
+    final localizedName = context.tr(zodiac.keyName);
 
     return Container(
       width: double.infinity,
@@ -570,7 +587,7 @@ class _HoroscopeScreenState extends State<HoroscopeScreen> {
                     Row(
                       children: [
                         Text(
-                          zodiac.name.toUpperCase(),
+                          localizedName.toUpperCase(),
                           style: GoogleFonts.cinzel(
                             color: textPrimary,
                             fontSize: 18,
@@ -612,7 +629,7 @@ class _HoroscopeScreenState extends State<HoroscopeScreen> {
 
           // Daily Ratings / Progress
           Text(
-            'TODAY\'S STELLAR RATINGS',
+            context.tr('todays_ratings'),
             style: GoogleFonts.cinzel(
               color: goldColor,
               fontSize: 12,
@@ -622,20 +639,20 @@ class _HoroscopeScreenState extends State<HoroscopeScreen> {
             ),
           ),
           const SizedBox(height: 14),
-          _buildRatingRow('Love & Relationship', zodiac.loveRating, Colors.pinkAccent, isDark),
-          _buildRatingRow('Career & Finance', zodiac.careerRating, goldColor, isDark),
-          _buildRatingRow('Health & Energy', zodiac.healthRating, isDark ? Colors.greenAccent : const Color(0xFF2E7D32), isDark),
+          _buildRatingRow(context.tr('love_relationship'), zodiac.loveRating, Colors.pinkAccent, isDark),
+          _buildRatingRow(context.tr('career_finance'), zodiac.careerRating, goldColor, isDark),
+          _buildRatingRow(context.tr('health_energy'), zodiac.healthRating, isDark ? Colors.greenAccent : const Color(0xFF2E7D32), isDark),
           const SizedBox(height: 24),
 
           // Lucky Parameters Row
           Row(
             children: [
               Expanded(
-                child: _buildLuckyBox('LUCKY COLOR', zodiac.luckyColor, isDark),
+                child: _buildLuckyBox(context.tr('lucky_color'), zodiac.luckyColor, isDark),
               ),
               const SizedBox(width: 12),
               Expanded(
-                child: _buildLuckyBox('LUCKY NUMBER', zodiac.luckyNumber.toString(), isDark),
+                child: _buildLuckyBox(context.tr('lucky_number'), zodiac.luckyNumber.toString(), isDark),
               ),
             ],
           ),
@@ -646,10 +663,10 @@ class _HoroscopeScreenState extends State<HoroscopeScreen> {
           ),
 
           // Forecast Descriptions
-          _buildForecastSection('GENERAL OVERVIEW', zodiac.overview, isDark),
-          _buildForecastSection('CAREER & MONEY', zodiac.career, isDark),
-          _buildForecastSection('LOVE & RELATIONSHIPS', zodiac.love, isDark),
-          _buildForecastSection('HEALTH & WELLNESS', zodiac.health, isDark),
+          _buildForecastSection(context.tr('general_overview'), zodiac.overview, isDark),
+          _buildForecastSection(context.tr('career_money'), zodiac.career, isDark),
+          _buildForecastSection(context.tr('love_relationships'), zodiac.love, isDark),
+          _buildForecastSection(context.tr('health_wellness'), zodiac.health, isDark),
         ],
       ),
     );

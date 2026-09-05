@@ -8,6 +8,7 @@ import '../../../domain/usecases/login_usecase.dart';
 import '../../../data/repositories/auth_repository_impl.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_assets.dart';
+import '../../../core/localization/app_localizations.dart';
 import '../../widgets/custom_button.dart';
 import '../../widgets/custom_text_field.dart';
 
@@ -118,7 +119,7 @@ class _AuthPageState extends State<AuthPage> {
                             const SizedBox(height: 24),
                             // Header Title
                             Text(
-                              _isLoginTab ? 'WELCOME BACK' : 'CREATE ACCOUNT',
+                              _isLoginTab ? context.tr('welcome_back') : context.tr('create_account'),
                               style: GoogleFonts.cinzel(
                                 fontSize: 32,
                                 fontWeight: FontWeight.w700,
@@ -129,8 +130,8 @@ class _AuthPageState extends State<AuthPage> {
                             // Subtitle
                             Text(
                               _isLoginTab
-                                  ? 'Sign in to continue your cosmic journey'
-                                  : 'Begin your Vedic journey today',
+                                  ? context.tr('sign_in_sub')
+                                  : context.tr('sign_up_sub'),
                               style: GoogleFonts.roboto(
                                 color: AppColors.getTextSecondary(isDark),
                                 fontSize: 14,
@@ -145,8 +146,8 @@ class _AuthPageState extends State<AuthPage> {
                             if (!_isLoginTab) ...[
                               // Full Name Field (Sign Up only)
                               CustomTextField(
-                                label: 'Full Name',
-                                hintText: 'Aarav Sharma',
+                                label: context.tr('full_name'),
+                                hintText: context.tr('full_name_hint'),
                                 controller: _fullNameController,
                                 validator: (val) {
                                   if (val == null || val.isEmpty) {
@@ -160,7 +161,7 @@ class _AuthPageState extends State<AuthPage> {
 
                             // Email Field
                             CustomTextField(
-                              label: 'Email',
+                              label: context.tr('email'),
                               hintText: 'you@example.com',
                               controller: _emailController,
                               keyboardType: TextInputType.emailAddress,
@@ -178,7 +179,7 @@ class _AuthPageState extends State<AuthPage> {
                             if (!_isLoginTab) ...[
                               // Phone Field (Sign Up only)
                               CustomTextField(
-                                label: 'Phone',
+                                label: context.tr('phone'),
                                 hintText: '+91 98765 43210',
                                 controller: _phoneController,
                                 keyboardType: TextInputType.phone,
@@ -216,7 +217,7 @@ class _AuthPageState extends State<AuthPage> {
                                     context.push('/forgot-password');
                                   },
                                   child: Text(
-                                    'Forgot password?',
+                                    context.tr('forgot_password'),
                                     style: GoogleFonts.roboto(
                                       color: AppColors.goldOrange,
                                       fontWeight: FontWeight.bold,
@@ -240,8 +241,8 @@ class _AuthPageState extends State<AuthPage> {
                             // Action Button
                             CustomButton(
                               text: _isLoginTab
-                                  ? 'SIGN IN \u2794'
-                                  : 'CREATE ACCOUNT \u2794',
+                                  ? context.tr('sign_in_btn')
+                                  : context.tr('create_acc_btn'),
                               isLoading: authProvider.isLoading,
                               onPressed: () async {
                                 if (_formKey.currentState!.validate()) {
@@ -287,7 +288,7 @@ class _AuthPageState extends State<AuthPage> {
                                     horizontal: 16.0,
                                   ),
                                   child: Text(
-                                    'or',
+                                    context.tr('or'),
                                     style: GoogleFonts.roboto(
                                       color: AppColors.getTextMuted(isDark),
                                       fontSize: 14,
@@ -405,7 +406,7 @@ class _AuthPageState extends State<AuthPage> {
                 ),
                 alignment: Alignment.center,
                 child: Text(
-                  'LOGIN',
+                  context.tr('login_tab'),
                   style: GoogleFonts.cinzel(
                     color: _isLoginTab
                         ? Colors.black
@@ -428,7 +429,7 @@ class _AuthPageState extends State<AuthPage> {
                 ),
                 alignment: Alignment.center,
                 child: Text(
-                  'SIGN UP',
+                  context.tr('signup_tab'),
                   style: GoogleFonts.cinzel(
                     color: !_isLoginTab
                         ? Colors.black

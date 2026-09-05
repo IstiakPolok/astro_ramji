@@ -4,7 +4,9 @@ import 'package:provider/provider.dart';
 import 'package:video_player/video_player.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_assets.dart';
+import '../../../core/localization/app_localizations.dart';
 import '../../providers/theme_provider.dart';
+import '../../providers/language_provider.dart';
 import '../main_navigation_screen.dart';
 
 class HomePage extends StatefulWidget {
@@ -21,19 +23,19 @@ class _HomePageState extends State<HomePage> {
   @override
   void initState() {
     super.initState();
-    _videoController =
-        VideoPlayerController.asset(AppAssets.videoHomeBg)
-          ..initialize().then((_) {
-            if (mounted) {
-              setState(() {
-                _isVideoInitialized = true;
-              });
-              _videoController?.setLooping(true);
-              _videoController?.setVolume(0.0); // Muted background video
-              _videoController?.setPlaybackSpeed(0.50);
-              _videoController?.play();
-            }
+    // Video Background for Dark Mode
+    _videoController = VideoPlayerController.asset(AppAssets.videoHomeBg)
+      ..initialize().then((_) {
+        if (mounted) {
+          setState(() {
+            _isVideoInitialized = true;
           });
+          _videoController?.setLooping(true);
+          _videoController?.setVolume(0.0);
+          _videoController?.setPlaybackSpeed(0.50);
+          _videoController?.play();
+        }
+      });
   }
 
   @override
@@ -42,9 +44,107 @@ class _HomePageState extends State<HomePage> {
     super.dispose();
   }
 
+  void _showLanguagePicker(BuildContext context, bool isDark) {
+    final languageProvider = Provider.of<LanguageProvider>(context, listen: false);
+    final goldColor = AppColors.getGold(isDark);
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return Container(
+          decoration: BoxDecoration(
+            color: isDark ? AppColors.spaceDark : AppColors.spaceLight,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+            border: Border(
+              top: BorderSide(color: goldColor, width: 1.5),
+            ),
+          ),
+          padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                context.tr('select_language'),
+                style: GoogleFonts.cinzel(
+                  color: goldColor,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 1.0,
+                ),
+              ),
+              const SizedBox(height: 16),
+              Flexible(
+                child: ListView.builder(
+                  shrinkWrap: true,
+                  itemCount: LanguageProvider.supportedLanguages.length,
+                  itemBuilder: (context, index) {
+                    final lang = LanguageProvider.supportedLanguages[index];
+                    final isSelected = lang.code == languageProvider.currentLanguageCode;
+
+                    return ListTile(
+                      contentPadding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+                      leading: Container(
+                        width: 40,
+                        height: 40,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: isSelected
+                              ? goldColor.withValues(alpha: 0.2)
+                              : (isDark ? Colors.white12 : const Color(0x20D4A827)),
+                          border: Border.all(
+                            color: isSelected ? goldColor : Colors.transparent,
+                            width: 1.5,
+                          ),
+                        ),
+                        child: Center(
+                          child: Text(
+                            lang.scriptSymbol,
+                            style: GoogleFonts.roboto(
+                              color: isSelected ? goldColor : (isDark ? Colors.white : AppColors.textPrimaryLight),
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
+                          ),
+                        ),
+                      ),
+                      title: Text(
+                        lang.nativeName,
+                        style: GoogleFonts.roboto(
+                          color: isSelected ? goldColor : (isDark ? Colors.white : AppColors.textPrimaryLight),
+                          fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                          fontSize: 15,
+                        ),
+                      ),
+                      subtitle: Text(
+                        lang.englishName,
+                        style: GoogleFonts.roboto(
+                          color: isDark ? Colors.white54 : AppColors.textSecondaryLight,
+                          fontSize: 12,
+                        ),
+                      ),
+                      trailing: isSelected
+                          ? Icon(Icons.check_circle_rounded, color: goldColor)
+                          : null,
+                      onTap: () {
+                        languageProvider.setLanguageCode(lang.code);
+                        Navigator.pop(context);
+                      },
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final themeProvider = Provider.of<ThemeProvider>(context);
+    final languageProvider = Provider.of<LanguageProvider>(context);
     final isDark = themeProvider.isDarkMode;
 
     return Scaffold(
@@ -52,9 +152,7 @@ class _HomePageState extends State<HomePage> {
       body: SafeArea(
         child: Stack(
           children: [
-            // Celestial Astrological Background
-            // In Light Mode: LIGHT.png
-            // In Dark Mode: Video or home_bg.png fallback
+            // Celestial Background
             Positioned.fill(
               child: isDark
                   ? (_isVideoInitialized && _videoController != null
@@ -75,65 +173,62 @@ class _HomePageState extends State<HomePage> {
                       fit: BoxFit.cover,
                     ),
             ),
-            // Overlay for readability
+            // Translucent Cover
             Positioned.fill(
               child: Container(
                 color: isDark
                     ? Colors.black.withValues(alpha: 0.20)
-                    : Colors.white.withValues(alpha: 0.25),
+                    : Colors.white.withValues(alpha: 0.15),
               ),
             ),
+
+            // Scrollable Body Content
             SafeArea(
               bottom: false,
-              child: Column(
-                children: [
-                  Expanded(
-                    child: SingleChildScrollView(
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 20.0,
-                          vertical: 16.0,
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            // Top Section: Profile Info & Theme Switcher
-                            _buildProfileHeader(isDark, themeProvider),
-                            const SizedBox(height: 20),
+              child: CustomScrollView(
+                slivers: [
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 12.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Top Section: Profile Info, Language & Theme Switcher
+                          _buildProfileHeader(isDark, themeProvider, languageProvider),
+                          const SizedBox(height: 20),
 
-                            // Quote section
-                            _buildQuoteSection(isDark),
-                            const SizedBox(height: 20),
+                          // Quote section
+                          _buildQuoteSection(isDark),
+                          const SizedBox(height: 20),
 
-                            // Today's Forecast Button
-                            _buildForecastButton(),
-                            const SizedBox(height: 24),
+                          // Today's Forecast Button
+                          _buildForecastButton(isDark),
+                          const SizedBox(height: 24),
 
-                            // Today's Panchang Card
-                            _buildPanchangCard(isDark),
-                            const SizedBox(height: 24),
+                          // Today's Panchang Card
+                          _buildPanchangCard(isDark),
+                          const SizedBox(height: 24),
 
-                            // Quick Actions Header
-                            _buildSectionHeader('QUICK ACTIONS', isDark),
-                            const SizedBox(height: 16),
+                          // Quick Actions Header
+                          _buildSectionHeader(context.tr('quick_actions'), isDark),
+                          const SizedBox(height: 16),
 
-                            // Quick Actions Grid (Row of 2)
-                            _buildQuickActionsRow1(),
-                            const SizedBox(height: 24),
+                          // Quick Actions Grid (Row of 2)
+                          _buildQuickActionsRow1(isDark),
+                          const SizedBox(height: 24),
 
-                            // Jupiter Mahadasha Card
-                            _buildMahadashaCard(isDark),
-                            const SizedBox(height: 24),
+                          // Jupiter Mahadasha Card
+                          _buildMahadashaCard(isDark),
+                          const SizedBox(height: 24),
 
-                            // Quick Actions Header 2
-                            _buildSectionHeader('QUICK ACTIONS', isDark),
-                            const SizedBox(height: 16),
+                          // Quick Actions Header 2
+                          _buildSectionHeader(context.tr('quick_actions'), isDark),
+                          const SizedBox(height: 16),
 
-                            // Quick Actions Row 2
-                            _buildQuickActionsRow2(),
-                            const SizedBox(height: 20),
-                          ],
-                        ),
+                          // Quick Actions Row 2
+                          _buildQuickActionsRow2(isDark),
+                          const SizedBox(height: 20),
+                        ],
                       ),
                     ),
                   ),
@@ -146,8 +241,8 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  // --- Profile Header & Theme Toggle ---
-  Widget _buildProfileHeader(bool isDark, ThemeProvider themeProvider) {
+  // --- Profile Header, Language Picker & Theme Toggle ---
+  Widget _buildProfileHeader(bool isDark, ThemeProvider themeProvider, LanguageProvider languageProvider) {
     final goldColor = AppColors.getGold(isDark);
     final textShadows = AppColors.getTextShadows(isDark);
 
@@ -159,10 +254,10 @@ class _HomePageState extends State<HomePage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'AARAV SHARMA',
+              context.tr('greeting_user'),
               style: GoogleFonts.cinzel(
                 color: goldColor,
-                fontSize: 22,
+                fontSize: 20,
                 fontWeight: FontWeight.bold,
                 letterSpacing: 1.5,
                 shadows: textShadows,
@@ -170,10 +265,10 @@ class _HomePageState extends State<HomePage> {
             ),
             const SizedBox(height: 4),
             Text(
-              'Monday, 11 August 2026',
+              context.tr('home_date'),
               style: GoogleFonts.roboto(
                 color: isDark ? const Color(0xFFFF4D4D) : const Color(0xFFD32F2F),
-                fontSize: 14,
+                fontSize: 13,
                 fontWeight: FontWeight.bold,
                 shadows: textShadows,
               ),
@@ -181,136 +276,175 @@ class _HomePageState extends State<HomePage> {
           ],
         ),
 
-        // Quick Theme Toggle Button
-        GestureDetector(
-          onTap: () {
-            themeProvider.toggleTheme();
-          },
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            decoration: BoxDecoration(
-              color: isDark
-                  ? Colors.white.withValues(alpha: 0.1)
-                  : Colors.white.withValues(alpha: 0.85),
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(
-                color: goldColor.withValues(alpha: 0.4),
-                width: 1.2,
-              ),
-              boxShadow: [
-                BoxShadow(
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Quick Language Selector Button
+            GestureDetector(
+              onTap: () => _showLanguagePicker(context, isDark),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                decoration: BoxDecoration(
                   color: isDark
-                      ? Colors.black.withValues(alpha: 0.3)
-                      : goldColor.withValues(alpha: 0.2),
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  isDark ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
-                  color: isDark ? AppColors.goldLight : AppColors.goldPrimaryDark,
-                  size: 18,
-                ),
-                const SizedBox(width: 6),
-                Text(
-                  isDark ? 'LIGHT' : 'DARK',
-                  style: GoogleFonts.cinzel(
-                    color: goldColor,
-                    fontSize: 11,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 0.8,
+                      ? Colors.white.withValues(alpha: 0.1)
+                      : Colors.white.withValues(alpha: 0.85),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: goldColor.withValues(alpha: 0.4),
+                    width: 1.2,
                   ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: isDark
+                          ? Colors.black.withValues(alpha: 0.3)
+                          : goldColor.withValues(alpha: 0.15),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
                 ),
-              ],
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.translate_rounded,
+                      color: isDark ? AppColors.goldLight : AppColors.goldPrimaryDark,
+                      size: 16,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      languageProvider.currentLanguageCode.toUpperCase(),
+                      style: GoogleFonts.cinzel(
+                        color: isDark ? Colors.white : AppColors.textPrimaryLight,
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ),
-          ),
+            const SizedBox(width: 8),
+
+            // Quick Theme Toggle Button
+            GestureDetector(
+              onTap: () {
+                themeProvider.toggleTheme();
+              },
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                decoration: BoxDecoration(
+                  color: isDark
+                      ? Colors.white.withValues(alpha: 0.1)
+                      : Colors.white.withValues(alpha: 0.85),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: goldColor.withValues(alpha: 0.4),
+                    width: 1.2,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: isDark
+                          ? Colors.black.withValues(alpha: 0.3)
+                          : goldColor.withValues(alpha: 0.15),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      isDark ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
+                      color: isDark ? AppColors.goldLight : AppColors.goldPrimaryDark,
+                      size: 16,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
         ),
       ],
     );
   }
 
-  // --- Quote Section ---
+  // --- Quote Card ---
   Widget _buildQuoteSection(bool isDark) {
-    final goldColor = AppColors.getGold(isDark);
-    final textShadows = AppColors.getTextShadows(isDark);
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          '“',
-          style: GoogleFonts.cinzel(
-            color: goldColor,
-            fontSize: 32,
-            fontWeight: FontWeight.bold,
-            height: 0.8,
-            shadows: textShadows,
-          ),
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Text(
+        context.tr('home_quote'),
+        style: GoogleFonts.roboto(
+          color: isDark ? Colors.white : AppColors.textPrimaryLight,
+          fontSize: 14,
+          fontWeight: FontWeight.w500,
+          fontStyle: FontStyle.italic,
+          height: 1.4,
+          shadows: AppColors.getTextShadows(isDark),
         ),
-        Transform.translate(
-          offset: const Offset(0, -12),
+      ),
+    );
+  }
+
+  // --- Today's Forecast Button ---
+  Widget _buildForecastButton(bool isDark) {
+    return GestureDetector(
+      onTap: () {
+        final navState = context.findAncestorStateOfType<MainNavigationScreenState>();
+        navState?.setIndex(2);
+      },
+      child: Container(
+        width: double.infinity,
+        height: 54,
+        decoration: BoxDecoration(
+          gradient: AppColors.buttonGradient,
+          borderRadius: BorderRadius.circular(24),
+          boxShadow: const [
+            BoxShadow(
+              color: AppColors.buttonShadow,
+              blurRadius: 15,
+              spreadRadius: 1,
+              offset: Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Center(
           child: Text(
-            'The cosmos holds the map,\nyour journey writes the story.',
-            style: GoogleFonts.roboto(
-              color: isDark
-                  ? Colors.white.withValues(alpha: 0.9)
-                  : AppColors.textPrimaryLight.withValues(alpha: 0.9),
-              fontSize: 13,
-              fontWeight: isDark ? FontWeight.normal : FontWeight.w500,
-              height: 1.4,
-              shadows: textShadows,
+            "${context.tr('todays_forecast')} ➔",
+            style: GoogleFonts.cinzel(
+              color: Colors.black,
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 1.0,
             ),
           ),
         ),
-      ],
-    );
-  }
-
-  // --- Forecast Button ---
-  Widget _buildForecastButton() {
-    return Container(
-      width: 170,
-      height: 40,
-      decoration: BoxDecoration(
-        gradient: AppColors.buttonGradient,
-        borderRadius: BorderRadius.circular(10),
-        boxShadow: const [
-          BoxShadow(
-            color: AppColors.buttonShadow,
-            blurRadius: 10,
-            offset: Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Center(
-        child: Text(
-          "Today's Forecast",
-          style: GoogleFonts.cinzel(
-            color: Colors.black,
-            fontSize: 13,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
       ),
     );
   }
 
-  // --- Today's Panchang ---
+  // --- Panchang Card ---
   Widget _buildPanchangCard(bool isDark) {
     final goldColor = AppColors.getGold(isDark);
-    final textSecondary = AppColors.getTextSecondary(isDark);
+    final cardBg = isDark
+        ? const Color(0xFF0C071D).withValues(alpha: 0.85)
+        : const Color(0xF5FFFFFF);
+
+    final borderColor = isDark
+        ? AppColors.goldPrimary.withValues(alpha: 0.25)
+        : const Color(0x40D4A827);
 
     return Container(
-      padding: const EdgeInsets.all(16),
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0x770F0B1E) : const Color(0xE8FFFFFF),
-        borderRadius: BorderRadius.circular(16),
+        color: cardBg,
+        borderRadius: BorderRadius.circular(24),
         border: Border.all(
-          color: goldColor.withValues(alpha: isDark ? 0.25 : 0.4),
+          color: borderColor,
           width: 1.5,
         ),
         boxShadow: isDark
@@ -326,127 +460,93 @@ class _HomePageState extends State<HomePage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header Row
+          Text(
+            context.tr('todays_panchang'),
+            style: GoogleFonts.cinzel(
+              color: goldColor,
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 1.2,
+            ),
+          ),
+          const SizedBox(height: 20),
+
+          // 2x2 Grid: Tithi, Nakshatra, Yoga, Karana
+          Row(
+            children: [
+              Expanded(
+                child: _buildPanchangItem(
+                  context.tr('tithi'),
+                  'Shukla Ashtami',
+                  const Color(0xFFCE7C2E),
+                  isDark,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _buildPanchangItem(
+                  context.tr('nakshatra'),
+                  'Rohini',
+                  const Color(0xFF8B5CF6),
+                  isDark,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: _buildPanchangItem(
+                  context.tr('yoga'),
+                  'Indra',
+                  const Color(0xFF10B981),
+                  isDark,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _buildPanchangItem(
+                  context.tr('karana'),
+                  'Bava',
+                  const Color(0xFFEC4899),
+                  isDark,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+
+          // Divider
+          Divider(
+            color: isDark ? AppColors.borderDark : const Color(0x20D4A827),
+            height: 1,
+            thickness: 1,
+          ),
+          const SizedBox(height: 16),
+
+          // Bottom Bar: Sunrise, Sunset, Rahu Kaal
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                "TODAY'S PANCHANG",
-                style: GoogleFonts.cinzel(
-                  color: goldColor,
-                  fontSize: 14,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 1.0,
-                ),
+              _buildBottomInfoItem(
+                Icons.wb_sunny_outlined,
+                context.tr('sunrise'),
+                '06:12 AM',
+                isDark,
               ),
-              Row(
-                children: [
-                  Icon(
-                    Icons.calendar_today_outlined,
-                    color: textSecondary,
-                    size: 14,
-                  ),
-                  const SizedBox(width: 6),
-                  Text(
-                    '11 Aug 2026',
-                    style: GoogleFonts.roboto(
-                      color: textSecondary,
-                      fontSize: 11,
-                    ),
-                  ),
-                ],
+              _buildBottomInfoItem(
+                Icons.nightlight_outlined,
+                context.tr('sunset'),
+                '06:45 PM',
+                isDark,
               ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          // Panchang Details Grid (2 - 2 - 2 - 1 layout)
-          Row(
-            children: [
-              Expanded(
-                child: _buildPanchangItem(
-                  'Tithi',
-                  'Saptami (7th)',
-                  Icons.nightlight_round,
-                  Colors.redAccent,
-                  isDark,
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: _buildPanchangItem(
-                  'Nakshatra',
-                  'Ashlesha',
-                  Icons.star_border_rounded,
-                  isDark ? Colors.greenAccent : const Color(0xFF2E7D32),
-                  isDark,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: _buildPanchangItem(
-                  'Yoga',
-                  'Siddha',
-                  Icons.spa_outlined,
-                  isDark ? Colors.purpleAccent : const Color(0xFF7B1FA2),
-                  isDark,
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: _buildPanchangItem(
-                  'Karana',
-                  '07:12pm',
-                  Icons.circle_outlined,
-                  isDark ? Colors.orangeAccent : const Color(0xFFE65100),
-                  isDark,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: _buildPanchangItem(
-                  'Sunrise',
-                  '07:12pm',
-                  Icons.wb_sunny_outlined,
-                  isDark ? Colors.yellowAccent : const Color(0xFFF57F17),
-                  isDark,
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: _buildPanchangItem(
-                  'Sunset',
-                  '07:12pm',
-                  Icons.wb_twilight_outlined,
-                  isDark ? Colors.blueAccent : const Color(0xFF1976D2),
-                  isDark,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                flex: 1,
-                child: _buildPanchangItem(
-                  'Rahu kaal',
-                  '07:12pm',
-                  Icons.timelapse_outlined,
-                  isDark ? Colors.pinkAccent : const Color(0xFFC2185B),
-                  isDark,
-                ),
-              ),
-              const Expanded(
-                flex: 1,
-                child: SizedBox(),
+              _buildBottomInfoItem(
+                Icons.schedule_outlined,
+                context.tr('rahu_kaal'),
+                '04:30 - 06:00',
+                isDark,
+                valueColor: Colors.redAccent,
               ),
             ],
           ),
@@ -455,63 +555,39 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  Widget _buildPanchangItem(
-    String label,
-    String value,
-    IconData icon,
-    Color iconColor,
-    bool isDark,
-  ) {
-    final goldColor = AppColors.getGold(isDark);
-    final textColor = AppColors.getTextPrimary(isDark);
-
+  Widget _buildPanchangItem(String label, String value, Color badgeColor, bool isDark) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF0C091A) : const Color(0xFFFAF7F0),
-        borderRadius: BorderRadius.circular(12),
+        color: isDark
+            ? Colors.white.withValues(alpha: 0.04)
+            : const Color(0xFFFAF7F0),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: isDark ? AppColors.borderDark : const Color(0x30D4A827),
+          color: isDark ? Colors.white12 : const Color(0x25D4A827),
           width: 1,
         ),
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Circular icon container
-          Container(
-            width: 28,
-            height: 28,
-            decoration: BoxDecoration(
-              color: iconColor.withValues(alpha: isDark ? 0.15 : 0.12),
-              shape: BoxShape.circle,
+          Text(
+            label,
+            style: GoogleFonts.cinzel(
+              color: isDark ? Colors.white70 : AppColors.textSecondaryLight,
+              fontSize: 10,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 0.5,
+              shadows: AppColors.getTextShadows(isDark),
             ),
-            child: Icon(icon, color: iconColor, size: 14),
           ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  label,
-                  style: GoogleFonts.cinzel(
-                    color: goldColor,
-                    fontSize: 9,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  value,
-                  style: GoogleFonts.roboto(
-                    color: textColor,
-                    fontSize: 10,
-                    fontWeight: FontWeight.w600,
-                  ),
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
+          const SizedBox(height: 4),
+          Text(
+            value,
+            style: GoogleFonts.roboto(
+              color: badgeColor,
+              fontSize: 13,
+              fontWeight: FontWeight.bold,
             ),
           ),
         ],
@@ -519,176 +595,294 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  // --- Section Header ---
+  Widget _buildBottomInfoItem(
+    IconData icon,
+    String label,
+    String value,
+    bool isDark, {
+    Color? valueColor,
+  }) {
+    return Row(
+      children: [
+        Icon(
+          icon,
+          color: AppColors.getGold(isDark),
+          size: 16,
+        ),
+        const SizedBox(width: 6),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              label,
+              style: GoogleFonts.roboto(
+                color: isDark ? Colors.white60 : AppColors.textSecondaryLight,
+                fontSize: 10,
+                shadows: AppColors.getTextShadows(isDark),
+              ),
+            ),
+            Text(
+              value,
+              style: GoogleFonts.roboto(
+                color: valueColor ?? (isDark ? Colors.white : AppColors.textPrimaryLight),
+                fontSize: 11,
+                fontWeight: FontWeight.bold,
+                shadows: AppColors.getTextShadows(isDark),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  // --- Section Headers ---
   Widget _buildSectionHeader(String title, bool isDark) {
     return Text(
       title,
       style: GoogleFonts.cinzel(
         color: AppColors.getGold(isDark),
-        fontSize: 16,
+        fontSize: 12,
         fontWeight: FontWeight.bold,
-        letterSpacing: 1.0,
+        letterSpacing: 1.2,
+        shadows: AppColors.getTextShadows(isDark),
       ),
     );
   }
 
-  // --- Quick Actions Row 1 (Generate Kundali & Kundali matching) ---
-  Widget _buildQuickActionsRow1() {
+  // --- Quick Actions Grid 1 ---
+  Widget _buildQuickActionsRow1(bool isDark) {
     return Row(
       children: [
-        // Generate Kundali (Green)
         Expanded(
-          child: GestureDetector(
+          child: _buildActionCard(
+            title: context.tr('generate_kundali_btn'),
+            imageAsset: AppAssets.kundaliButton,
+            isDark: isDark,
             onTap: () {
-              context
-                  .findAncestorStateOfType<MainNavigationScreenState>()
-                  ?.setIndex(1);
+              final navState = context.findAncestorStateOfType<MainNavigationScreenState>();
+              navState?.setIndex(1); // Kundali Tab
             },
-            child: Image.asset(
-              AppAssets.kundaliButton,
-              fit: BoxFit.contain,
-            ),
           ),
         ),
-        const SizedBox(width: 12),
-        // Kundali Matching (Pink)
+        const SizedBox(width: 16),
         Expanded(
-          child: GestureDetector(
+          child: _buildActionCard(
+            title: context.tr('kundali_matching_btn'),
+            imageAsset: AppAssets.kundaliMatchingButton,
+            isDark: isDark,
             onTap: () {
-              context
-                  .findAncestorStateOfType<MainNavigationScreenState>()
-                  ?.setIndex(3);
+              final navState = context.findAncestorStateOfType<MainNavigationScreenState>();
+              navState?.setIndex(3); // Matching Tab
             },
-            child: Image.asset(
-              AppAssets.kundaliMatchingButton,
-              fit: BoxFit.contain,
-            ),
           ),
         ),
       ],
+    );
+  }
+
+  // --- Quick Actions Grid 2 ---
+  Widget _buildQuickActionsRow2(bool isDark) {
+    return Row(
+      children: [
+        Expanded(
+          child: _buildActionCard(
+            title: context.tr('mangal_dosha_btn'),
+            imageAsset: AppAssets.noMangalDosha,
+            isDark: isDark,
+            onTap: () {
+              final navState = context.findAncestorStateOfType<MainNavigationScreenState>();
+              navState?.setIndex(1); // Go to Kundali
+            },
+          ),
+        ),
+        const SizedBox(width: 16),
+        Expanded(
+          child: _buildActionCard(
+            title: context.tr('sade_sati_btn'),
+            imageAsset: AppAssets.sadeSati,
+            isDark: isDark,
+            onTap: () {
+              final navState = context.findAncestorStateOfType<MainNavigationScreenState>();
+              navState?.setIndex(1); // Go to Kundali
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildActionCard({
+    required String title,
+    required String imageAsset,
+    required VoidCallback onTap,
+    required bool isDark,
+  }) {
+    final goldColor = AppColors.getGold(isDark);
+    final cardBg = isDark
+        ? const Color(0xFF140F27).withValues(alpha: 0.7)
+        : const Color(0xF5FFFFFF);
+
+    final borderColor = isDark
+        ? AppColors.goldPrimary.withValues(alpha: 0.25)
+        : const Color(0x35D4A827);
+
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        height: 140,
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: cardBg,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: borderColor,
+            width: 1.2,
+          ),
+          boxShadow: isDark
+              ? null
+              : [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.04),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Expanded(
+              child: Image.asset(
+                imageAsset,
+                fit: BoxFit.contain,
+                errorBuilder: (context, error, stackTrace) {
+                  return Icon(
+                    Icons.auto_awesome,
+                    color: goldColor,
+                    size: 40,
+                  );
+                },
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              title,
+              style: GoogleFonts.cinzel(
+                color: isDark ? Colors.white : AppColors.textPrimaryLight,
+                fontSize: 11,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 0.5,
+                shadows: AppColors.getTextShadows(isDark),
+              ),
+              textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
+        ),
+      ),
     );
   }
 
   // --- Jupiter Mahadasha Card ---
   Widget _buildMahadashaCard(bool isDark) {
     final goldColor = AppColors.getGold(isDark);
-    final textColor = AppColors.getTextPrimary(isDark);
+    final cardBg = isDark
+        ? const Color(0xFF0C071D).withValues(alpha: 0.85)
+        : const Color(0xF5FFFFFF);
+
+    final borderColor = isDark
+        ? AppColors.goldPrimary.withValues(alpha: 0.25)
+        : const Color(0x40D4A827);
 
     return Container(
+      width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0x770F0B1E) : const Color(0xE8FFFFFF),
-        borderRadius: BorderRadius.circular(16),
+        color: cardBg,
+        borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: goldColor.withValues(alpha: isDark ? 0.2 : 0.4),
-          width: 1.5,
+          color: borderColor,
+          width: 1.2,
         ),
         boxShadow: isDark
             ? null
             : [
                 BoxShadow(
                   color: Colors.black.withValues(alpha: 0.05),
-                  blurRadius: 12,
+                  blurRadius: 10,
                   offset: const Offset(0, 4),
                 ),
               ],
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Jupiter Planet Image
-          Image.asset(
-            AppAssets.jupiter,
-            width: 48,
-            height: 48,
-            fit: BoxFit.contain,
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'JUPITER MAHADASHA',
-                  style: GoogleFonts.cinzel(
+          Row(
+            children: [
+              SizedBox(
+                width: 44,
+                height: 44,
+                child: Image.asset(
+                  AppAssets.jupitar,
+                  fit: BoxFit.contain,
+                  errorBuilder: (context, error, stackTrace) => Icon(
+                    Icons.circle,
                     color: goldColor,
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
+                    size: 32,
                   ),
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  '2023–2039 · Currently active',
-                  style: GoogleFonts.roboto(
-                    color: textColor,
-                    fontSize: 12,
-                    fontWeight: isDark ? FontWeight.normal : FontWeight.w500,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                // Progress Bar
-                Stack(
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Container(
-                      height: 6,
-                      decoration: BoxDecoration(
-                        color: isDark ? AppColors.borderDark : const Color(0x25D4A827),
-                        borderRadius: BorderRadius.circular(3),
+                    Text(
+                      context.tr('jupiter_mahadasha'),
+                      style: GoogleFonts.cinzel(
+                        color: goldColor,
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 0.8,
                       ),
                     ),
-                    FractionallySizedBox(
-                      widthFactor: 0.5, // 50% progress
-                      child: Container(
-                        height: 6,
-                        decoration: BoxDecoration(
-                          gradient: AppColors.buttonGradient,
-                          borderRadius: BorderRadius.circular(3),
-                        ),
+                    const SizedBox(height: 2),
+                    Text(
+                      context.tr('mahadasha_sub'),
+                      style: GoogleFonts.roboto(
+                        color: isDark ? Colors.white70 : AppColors.textSecondaryLight,
+                        fontSize: 11,
+                        shadows: AppColors.getTextShadows(isDark),
                       ),
                     ),
                   ],
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
-          const SizedBox(width: 16),
-          // Compass Icon
-          Image.asset(
-            AppAssets.rashiChakra,
-            width: 36,
-            height: 36,
-            fit: BoxFit.contain,
+          const SizedBox(height: 14),
+
+          // Progress Bar
+          ClipRRect(
+            borderRadius: BorderRadius.circular(4),
+            child: Container(
+              height: 6,
+              color: isDark ? Colors.white12 : const Color(0x25D4A827),
+              child: FractionallySizedBox(
+                alignment: Alignment.centerLeft,
+                widthFactor: 0.25, // 2023 to 2026 = 3/16th ≈ 25%
+                child: Container(
+                  decoration: const BoxDecoration(
+                    gradient: AppColors.buttonGradient,
+                  ),
+                ),
+              ),
+            ),
           ),
         ],
       ),
-    );
-  }
-
-  // --- Quick Actions Row 2 (Mangal Dosha & Sade Sati) ---
-  Widget _buildQuickActionsRow2() {
-    return Row(
-      children: [
-        // Mangal Dosha
-        Expanded(
-          child: GestureDetector(
-            onTap: () {},
-            child: Image.asset(
-              AppAssets.mangalDosha,
-              fit: BoxFit.contain,
-            ),
-          ),
-        ),
-        const SizedBox(width: 12),
-        // Sade Sati
-        Expanded(
-          child: GestureDetector(
-            onTap: () {},
-            child: Image.asset(
-              AppAssets.sadeSati,
-              fit: BoxFit.contain,
-            ),
-          ),
-        ),
-      ],
     );
   }
 }

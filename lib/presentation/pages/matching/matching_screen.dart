@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import 'package:video_player/video_player.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_assets.dart';
+import '../../../core/localization/app_localizations.dart';
 import '../../providers/theme_provider.dart';
 
 class MatchingScreen extends StatefulWidget {
@@ -43,13 +44,6 @@ class _MatchingScreenState extends State<MatchingScreen> {
 
   // Loading Screen Details
   int _loadingStep = 0;
-  final List<String> _loadingSteps = [
-    'Comparing birth charts...',
-    'Analyzing Ashtakoota Gunas...',
-    'Checking Mangal Dosha match...',
-    'Calculating compatibility percentage...',
-    'Aligning planetary bonds...',
-  ];
 
   @override
   void initState() {
@@ -191,7 +185,7 @@ class _MatchingScreenState extends State<MatchingScreen> {
         timer.cancel();
         return;
       }
-      if (_loadingStep < _loadingSteps.length - 1) {
+      if (_loadingStep < 4) {
         setState(() {
           _loadingStep++;
         });
@@ -215,8 +209,6 @@ class _MatchingScreenState extends State<MatchingScreen> {
         child: Stack(
           children: [
             // Background
-            // In Light Mode: LIGHT4.png (Taurus & Celestial Constellations)
-            // In Dark Mode: Video / home_bg.png
             Positioned.fill(
               child: isDark
                   ? (_isVideoInitialized && _videoController != null
@@ -292,11 +284,11 @@ class _MatchingScreenState extends State<MatchingScreen> {
             const SizedBox(height: 20),
             _buildStepIndicators(1, isDark),
             const SizedBox(height: 24),
-            _buildSubHeaderBanner('♂ GROOM / PERSON 1', isDark),
+            _buildSubHeaderBanner(context.tr('groom_header'), isDark),
             const SizedBox(height: 28),
 
             // Full name
-            _buildLabelRow(Icons.person_outline, 'FULL NAME', isDark),
+            _buildLabelRow(Icons.person_outline, context.tr('full_name'), isDark),
             const SizedBox(height: 8),
             _buildTextField(
               controller: _name1Controller,
@@ -309,11 +301,11 @@ class _MatchingScreenState extends State<MatchingScreen> {
             const SizedBox(height: 24),
 
             // Date of birth
-            _buildLabelRow(Icons.calendar_month_outlined, 'DATE OF BIRTH', isDark),
+            _buildLabelRow(Icons.calendar_month_outlined, context.tr('date_of_birth'), isDark),
             const SizedBox(height: 8),
             _buildClickableField(
               controller: _date1Controller,
-              hintText: 'Select date of birth',
+              hintText: context.tr('select_date_hint'),
               isDark: isDark,
               onTap: () => _selectDate(context, true, isDark),
               validator: (val) => (val == null || val.trim().isEmpty)
@@ -323,11 +315,11 @@ class _MatchingScreenState extends State<MatchingScreen> {
             const SizedBox(height: 24),
 
             // Time of birth
-            _buildLabelRow(Icons.access_time, 'TIME OF BIRTH', isDark),
+            _buildLabelRow(Icons.access_time, context.tr('time_of_birth'), isDark),
             const SizedBox(height: 8),
             _buildClickableField(
               controller: _time1Controller,
-              hintText: 'Select time of birth',
+              hintText: context.tr('select_time_hint'),
               isDark: isDark,
               onTap: () => _selectTime(context, true, isDark),
               validator: (val) => (val == null || val.trim().isEmpty)
@@ -337,7 +329,7 @@ class _MatchingScreenState extends State<MatchingScreen> {
             const SizedBox(height: 24),
 
             // Place of birth
-            _buildLabelRow(Icons.location_on_outlined, 'PLACE OF BIRTH', isDark),
+            _buildLabelRow(Icons.location_on_outlined, context.tr('place_of_birth'), isDark),
             const SizedBox(height: 8),
             _buildTextField(
               controller: _place1Controller,
@@ -350,20 +342,20 @@ class _MatchingScreenState extends State<MatchingScreen> {
             const SizedBox(height: 24),
 
             // Gender
-            _buildLabelRow(null, 'GENDER', isDark),
+            _buildLabelRow(null, context.tr('gender'), isDark),
             const SizedBox(height: 10),
             Row(
               children: [
-                _buildGenderButton('MALE', true, isDark),
+                _buildGenderButton('MALE', context.tr('gender_male'), true, isDark),
                 const SizedBox(width: 10),
-                _buildGenderButton('FEMALE', true, isDark),
+                _buildGenderButton('FEMALE', context.tr('gender_female'), true, isDark),
               ],
             ),
             const SizedBox(height: 36),
 
             // Next button
             _buildActionButton(
-              text: 'NEXT: ADD PERSON 2 →',
+              text: context.tr('next_person_2'),
               onTap: () {
                 if (_formKey1.currentState!.validate()) {
                   setState(() {
@@ -396,11 +388,11 @@ class _MatchingScreenState extends State<MatchingScreen> {
             const SizedBox(height: 20),
             _buildStepIndicators(2, isDark),
             const SizedBox(height: 24),
-            _buildSubHeaderBanner('♀ BRIDE / PERSON 2', isDark),
+            _buildSubHeaderBanner(context.tr('bride_header'), isDark),
             const SizedBox(height: 28),
 
             // Full name
-            _buildLabelRow(Icons.person_outline, 'FULL NAME', isDark),
+            _buildLabelRow(Icons.person_outline, context.tr('full_name'), isDark),
             const SizedBox(height: 8),
             _buildTextField(
               controller: _name2Controller,
@@ -413,11 +405,11 @@ class _MatchingScreenState extends State<MatchingScreen> {
             const SizedBox(height: 24),
 
             // Date of birth
-            _buildLabelRow(Icons.calendar_month_outlined, 'DATE OF BIRTH', isDark),
+            _buildLabelRow(Icons.calendar_month_outlined, context.tr('date_of_birth'), isDark),
             const SizedBox(height: 8),
             _buildClickableField(
               controller: _date2Controller,
-              hintText: 'Select date of birth',
+              hintText: context.tr('select_date_hint'),
               isDark: isDark,
               onTap: () => _selectDate(context, false, isDark),
               validator: (val) => (val == null || val.trim().isEmpty)
@@ -427,11 +419,11 @@ class _MatchingScreenState extends State<MatchingScreen> {
             const SizedBox(height: 24),
 
             // Time of birth
-            _buildLabelRow(Icons.access_time, 'TIME OF BIRTH', isDark),
+            _buildLabelRow(Icons.access_time, context.tr('time_of_birth'), isDark),
             const SizedBox(height: 8),
             _buildClickableField(
               controller: _time2Controller,
-              hintText: 'Select time of birth',
+              hintText: context.tr('select_time_hint'),
               isDark: isDark,
               onTap: () => _selectTime(context, false, isDark),
               validator: (val) => (val == null || val.trim().isEmpty)
@@ -441,7 +433,7 @@ class _MatchingScreenState extends State<MatchingScreen> {
             const SizedBox(height: 24),
 
             // Place of birth
-            _buildLabelRow(Icons.location_on_outlined, 'PLACE OF BIRTH', isDark),
+            _buildLabelRow(Icons.location_on_outlined, context.tr('place_of_birth'), isDark),
             const SizedBox(height: 8),
             _buildTextField(
               controller: _place2Controller,
@@ -454,13 +446,13 @@ class _MatchingScreenState extends State<MatchingScreen> {
             const SizedBox(height: 24),
 
             // Gender
-            _buildLabelRow(null, 'GENDER', isDark),
+            _buildLabelRow(null, context.tr('gender'), isDark),
             const SizedBox(height: 10),
             Row(
               children: [
-                _buildGenderButton('MALE', false, isDark),
+                _buildGenderButton('MALE', context.tr('gender_male'), false, isDark),
                 const SizedBox(width: 10),
-                _buildGenderButton('FEMALE', false, isDark),
+                _buildGenderButton('FEMALE', context.tr('gender_female'), false, isDark),
               ],
             ),
             const SizedBox(height: 36),
@@ -486,7 +478,7 @@ class _MatchingScreenState extends State<MatchingScreen> {
                       ),
                     ),
                     child: Text(
-                      'BACK',
+                      context.tr('back').toUpperCase(),
                       style: GoogleFonts.cinzel(
                         color: AppColors.getGold(isDark),
                         fontWeight: FontWeight.bold,
@@ -499,7 +491,7 @@ class _MatchingScreenState extends State<MatchingScreen> {
                 const SizedBox(width: 16),
                 Expanded(
                   child: _buildActionButton(
-                    text: 'MATCH KUNDALI ✨',
+                    text: context.tr('match_kundali_btn'),
                     onTap: _startMatching,
                   ),
                 ),
@@ -519,6 +511,14 @@ class _MatchingScreenState extends State<MatchingScreen> {
     final goldColor = AppColors.getGold(isDark);
     final textShadows = AppColors.getTextShadows(isDark);
     final textSubtitle = isDark ? Colors.white70 : AppColors.textSecondaryLight;
+
+    final loadingSteps = [
+      'Comparing birth charts...',
+      'Analyzing Ashtakoota Gunas...',
+      'Checking Mangal Dosha match...',
+      'Calculating compatibility percentage...',
+      'Aligning planetary bonds...',
+    ];
 
     return Center(
       key: const ValueKey('loading_screen'),
@@ -542,7 +542,7 @@ class _MatchingScreenState extends State<MatchingScreen> {
             ),
             const SizedBox(height: 48),
             Text(
-              _loadingSteps[_loadingStep].toUpperCase(),
+              loadingSteps[_loadingStep].toUpperCase(),
               style: GoogleFonts.cinzel(
                 color: goldColor,
                 fontSize: 15,
@@ -568,7 +568,7 @@ class _MatchingScreenState extends State<MatchingScreen> {
                 width: 150,
                 height: 4,
                 child: LinearProgressIndicator(
-                  value: (_loadingStep + 1) / _loadingSteps.length,
+                  value: (_loadingStep + 1) / 5,
                   backgroundColor: isDark ? AppColors.borderDark : const Color(0x30D4A827),
                   color: goldColor,
                 ),
@@ -621,7 +621,7 @@ class _MatchingScreenState extends State<MatchingScreen> {
                     ),
                     const SizedBox(width: 6),
                     Text(
-                      'Back',
+                      context.tr('back'),
                       style: GoogleFonts.roboto(
                         color: goldColor,
                         fontSize: 16,
@@ -657,7 +657,7 @@ class _MatchingScreenState extends State<MatchingScreen> {
 
           // 2. Title
           Text(
-            'MATCHING RESULT',
+            context.tr('matching_result'),
             style: GoogleFonts.cinzel(
               color: textPrimary,
               fontSize: 24,
@@ -750,7 +750,7 @@ class _MatchingScreenState extends State<MatchingScreen> {
               ),
               child: Center(
                 child: Text(
-                  'MATCH ANOTHER KUNDALI',
+                  context.tr('match_another'),
                   style: GoogleFonts.cinzel(
                     color: goldColor,
                     fontSize: 14,
@@ -876,7 +876,7 @@ class _MatchingScreenState extends State<MatchingScreen> {
                             ),
                           ),
                           Text(
-                            'OUT OF 36',
+                            context.tr('out_of_36'),
                             style: GoogleFonts.roboto(
                               color: textSecondary,
                               fontSize: 8,
@@ -949,7 +949,7 @@ class _MatchingScreenState extends State<MatchingScreen> {
               ),
             ),
             child: Text(
-              'EXCELLENT MATCH',
+              context.tr('excellent_match'),
               style: GoogleFonts.cinzel(
                 color: isDark ? Colors.greenAccent : const Color(0xFF2E7D32),
                 fontSize: 10,
@@ -992,7 +992,7 @@ class _MatchingScreenState extends State<MatchingScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            '36 GUNA MATCHING',
+            context.tr('guna_matching_title'),
             style: GoogleFonts.cinzel(
               color: goldColor,
               fontSize: 12,
@@ -1022,7 +1022,7 @@ class _MatchingScreenState extends State<MatchingScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'TOTAL SCORE',
+                context.tr('total_score'),
                 style: GoogleFonts.cinzel(
                   color: goldColor,
                   fontSize: 13,
@@ -1168,7 +1168,7 @@ class _MatchingScreenState extends State<MatchingScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'MANGAL DOSHA COMPATIBLE',
+                  context.tr('mangal_dosha_compatible'),
                   style: GoogleFonts.cinzel(
                     color: isDark ? Colors.greenAccent : const Color(0xFF2E7D32),
                     fontSize: 12,
@@ -1178,7 +1178,7 @@ class _MatchingScreenState extends State<MatchingScreen> {
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  'Neither person has Mangal Dosha. This is excellent for matrimonial compatibility and long-term wellbeing.',
+                  context.tr('mangal_compatible_desc'),
                   style: GoogleFonts.roboto(
                     color: isDark ? Colors.white70 : AppColors.textSecondaryLight,
                     fontSize: 11,
@@ -1204,7 +1204,7 @@ class _MatchingScreenState extends State<MatchingScreen> {
       child: Column(
         children: [
           Text(
-            'KUNDALI MATCHING',
+            context.tr('kundali_matching'),
             style: GoogleFonts.cinzel(
               color: textPrimary,
               fontSize: 24,
@@ -1215,12 +1215,13 @@ class _MatchingScreenState extends State<MatchingScreen> {
           ),
           const SizedBox(height: 4),
           Text(
-            'Check matrimonial compatibility between two birth charts',
+            context.tr('matching_sub'),
             style: GoogleFonts.roboto(
               color: textSubtitle,
               fontSize: 11,
               shadows: textShadows,
             ),
+            textAlign: TextAlign.center,
           ),
         ],
       ),
@@ -1237,8 +1238,8 @@ class _MatchingScreenState extends State<MatchingScreen> {
       ),
       child: Row(
         children: [
-          Expanded(child: _buildStepCapsule(1, 'PERSON 1', activeStep >= 1, isDark)),
-          Expanded(child: _buildStepCapsule(2, 'PERSON 2', activeStep >= 2, isDark)),
+          Expanded(child: _buildStepCapsule(1, context.tr('person_1'), activeStep >= 1, isDark)),
+          Expanded(child: _buildStepCapsule(2, context.tr('person_2'), activeStep >= 2, isDark)),
         ],
       ),
     );
@@ -1456,8 +1457,8 @@ class _MatchingScreenState extends State<MatchingScreen> {
     );
   }
 
-  Widget _buildGenderButton(String gender, bool isPerson1, bool isDark) {
-    final isSelected = isPerson1 ? _gender1 == gender : _gender2 == gender;
+  Widget _buildGenderButton(String genderCode, String genderLabel, bool isPerson1, bool isDark) {
+    final isSelected = isPerson1 ? _gender1 == genderCode : _gender2 == genderCode;
     final goldColor = AppColors.getGold(isDark);
 
     return Expanded(
@@ -1465,9 +1466,9 @@ class _MatchingScreenState extends State<MatchingScreen> {
         onTap: () {
           setState(() {
             if (isPerson1) {
-              _gender1 = gender;
+              _gender1 = genderCode;
             } else {
-              _gender2 = gender;
+              _gender2 = genderCode;
             }
           });
         },
@@ -1487,13 +1488,13 @@ class _MatchingScreenState extends State<MatchingScreen> {
           ),
           child: Center(
             child: Text(
-              gender,
+              genderLabel,
               style: GoogleFonts.cinzel(
                 color: isSelected
                     ? Colors.black
                     : (isDark ? Colors.white : AppColors.textPrimaryLight),
                 fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
-                fontSize: 13,
+                fontSize: 12,
                 letterSpacing: 0.5,
                 shadows: isSelected ? null : AppColors.getTextShadows(isDark),
               ),
