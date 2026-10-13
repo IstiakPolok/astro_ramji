@@ -1,8 +1,11 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:video_player/video_player.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../core/constants/app_assets.dart';
+import '../../providers/theme_provider.dart';
 
 class SplashPage extends StatefulWidget {
   const SplashPage({super.key});
@@ -13,40 +16,28 @@ class SplashPage extends StatefulWidget {
 
 class _SplashPageState extends State<SplashPage>
     with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-  late VideoPlayerController _videoController;
+  late AnimationController _spinnerController;
+  Timer? _splashTimer;
+  Timer? _navTimer;
   bool _isFadingOut = false;
 
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(
+    _spinnerController = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 2),
-    );
+    )..repeat();
 
-    _controller.repeat();
-
-    _videoController =
-        VideoPlayerController.asset('assets/videos/splashscreenBG.mp4')
-          ..initialize().then((_) {
-            if (mounted) {
-              setState(() {});
-              _videoController.play();
-              _videoController.setLooping(true);
-              _videoController.setVolume(100.0);
-            }
-          });
-
-    Timer(const Duration(seconds: 3), () {
+    // 3 seconds splash display then smooth transition straight to home
+    _splashTimer = Timer(const Duration(seconds: 3), () {
       if (mounted) {
         setState(() {
           _isFadingOut = true;
         });
-        _videoController.setVolume(0.0);
-        Future.delayed(const Duration(milliseconds: 800), () {
+        _navTimer = Timer(const Duration(milliseconds: 600), () {
           if (mounted) {
-            context.go('/onboarding');
+            context.go('/home');
           }
         });
       }
@@ -55,67 +46,122 @@ class _SplashPageState extends State<SplashPage>
 
   @override
   void dispose() {
-    _controller.dispose();
-    _videoController.dispose();
+    _splashTimer?.cancel();
+    _navTimer?.cancel();
+    _spinnerController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    final themeProvider = Provider.of<ThemeProvider>(context);
+    final isDark = themeProvider.isDarkMode;
+    final goldColor = AppColors.getGold(isDark);
+
     return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(gradient: AppColors.bgGradient),
-        child: AnimatedOpacity(
-          opacity: _isFadingOut ? 0.0 : 1.0,
-          duration: const Duration(milliseconds: 800),
-          child: Stack(
-            alignment: Alignment.center,
-            children: [
-              Positioned.fill(
-                child: FittedBox(
-                  fit: BoxFit.cover,
-                  child: SizedBox(
-                    width: _videoController.value.size.width,
-                    height: _videoController.value.size.height,
-                    child: VideoPlayer(_videoController),
+      backgroundColor: AppColors.getBackground(isDark),
+      body: AnimatedOpacity(
+        opacity: _isFadingOut ? 0.0 : 1.0,
+        duration: const Duration(milliseconds: 600),
+        curve: Curves.easeInOut,
+        child: Stack(
+          children: [
+            // Celestial Theme Background (respects saved dark/light theme)
+            Positioned.fill(
+              child: Image.asset(
+                isDark ? AppAssets.bgHomeDark : AppAssets.bgLight1,
+                fit: BoxFit.cover,
+              ),
+            ),
+
+            // Theme-adaptive overlay
+            Positioned.fill(
+              child: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: isDark
+                        ? [
+                            Colors.black.withValues(alpha: 0.20),
+                            Colors.black.withValues(alpha: 0.50),
+                          ]
+                        : [
+                            Colors.white.withValues(alpha: 0.15),
+                            Colors.white.withValues(alpha: 0.35),
+                          ],
                   ),
                 ),
               ),
-              // Glowing cosmic nebula aura
-              Center(
-                child: Container(
-                  width: 250,
-                  height: 250,
-                  decoration: BoxDecoration(shape: BoxShape.circle),
-                ),
-              ),
-              // Astro Ramji Logo
+            ),
 
-              // Loading indicator at bottom
-              Positioned(
-                bottom: 80,
+            // Main Content: Center Logo & Vedic Tagline
+            Center(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 32.0),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Image.asset(
-                      'assets/images/logo/logo.png',
-                      width: 250,
-                      height: 250,
-                      fit: BoxFit.contain,
-                    ),
-                    RotationTransition(
-                      turns: _controller,
+                    // Golden aura glow container
+                    Container(
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: goldColor.withValues(alpha: isDark ? 0.25 : 0.18),
+                            blurRadius: 48,
+                            spreadRadius: 16,
+                          ),
+                        ],
+                      ),
                       child: Image.asset(
-                        'assets/images/Component/loading.png',
-                        width: 50,
-                        height: 50,
+                        AppAssets.logo,
+                        width: 250,
+                        height: 120,
+                        fit: BoxFit.contain,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      'VEDIC ASTROLOGY & HOROSCOPES',
+                      textAlign: TextAlign.center,
+                      style: GoogleFonts.cinzel(
+                        color: goldColor,
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 2.2,
+                        shadows: AppColors.getTextShadows(isDark) ?? const [
+                          Shadow(
+                            color: Color(0x33D4A827),
+                            blurRadius: 8,
+                            offset: Offset(0, 1),
+                          ),
+                        ],
                       ),
                     ),
                   ],
                 ),
               ),
-            ],
-          ),
+            ),
+
+            // Bottom loading spinner
+            Positioned(
+              bottom: 60,
+              left: 0,
+              right: 0,
+              child: Center(
+                child: RotationTransition(
+                  turns: _spinnerController,
+                  child: Image.asset(
+                    AppAssets.loading,
+                    width: 44,
+                    height: 44,
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );

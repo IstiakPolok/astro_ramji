@@ -7,6 +7,8 @@ import '../../../core/constants/app_assets.dart';
 import '../../../core/localization/app_localizations.dart';
 import '../../providers/theme_provider.dart';
 import '../../providers/language_provider.dart';
+import '../../providers/astrology_api_provider.dart';
+import '../../widgets/theme_picker_sheet.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -145,6 +147,140 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
+  void _showServerConfigDialog(BuildContext context, bool isDark) {
+    final apiProvider = Provider.of<AstrologyApiProvider>(context, listen: false);
+    final goldColor = AppColors.getGold(isDark);
+    final textShadows = AppColors.getTextShadows(isDark);
+    final textController = TextEditingController(text: apiProvider.baseUrl);
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return Container(
+          padding: EdgeInsets.only(
+            left: 24,
+            right: 24,
+            top: 24,
+            bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+          ),
+          decoration: BoxDecoration(
+            color: isDark ? AppColors.spaceDark : AppColors.spaceLight,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+            border: Border(top: BorderSide(color: goldColor, width: 1.5)),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'API SERVER CONFIG',
+                style: GoogleFonts.cinzel(
+                  color: goldColor,
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 1.0,
+                  shadows: textShadows,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Configure the Kundali OpenAPI endpoint (local server, emulator, or cloud)',
+                style: GoogleFonts.roboto(
+                  color: isDark ? Colors.white70 : AppColors.textSecondaryLight,
+                  fontSize: 12,
+                ),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: textController,
+                style: GoogleFonts.roboto(
+                  color: isDark ? Colors.white : AppColors.textPrimaryLight,
+                  fontSize: 14,
+                ),
+                decoration: InputDecoration(
+                  hintText: 'https://api.example.com',
+                  prefixIcon: Icon(Icons.dns_outlined, color: goldColor),
+                  filled: true,
+                  fillColor: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.white,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(14),
+                    borderSide: BorderSide(color: goldColor.withValues(alpha: 0.3)),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(14),
+                    borderSide: BorderSide(color: goldColor, width: 1.5),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 14),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  _buildPresetChip('Live Ngrok', 'https://catechismal-imperatorial-camren.ngrok-free.dev', textController, isDark),
+                  _buildPresetChip('Production', 'https://api.astroramji.com', textController, isDark),
+                  _buildPresetChip('Localhost (8000)', 'http://127.0.0.1:8000', textController, isDark),
+                  _buildPresetChip('Android Emulator', 'http://10.0.2.2:8000', textController, isDark),
+                ],
+              ),
+              const SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                height: 48,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: goldColor,
+                    foregroundColor: Colors.black,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  ),
+                  onPressed: () async {
+                    final newUrl = textController.text.trim();
+                    if (newUrl.isNotEmpty) {
+                      await apiProvider.setBaseUrl(newUrl);
+                      apiProvider.fetchTodayPanchang();
+                      if (context.mounted) Navigator.pop(context);
+                    }
+                  },
+                  child: Text(
+                    'SAVE SERVER URL',
+                    style: GoogleFonts.cinzel(fontWeight: FontWeight.bold, letterSpacing: 1.0),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildPresetChip(
+    String label,
+    String url,
+    TextEditingController controller,
+    bool isDark,
+  ) {
+    final goldColor = AppColors.getGold(isDark);
+    final isSelected = controller.text == url;
+
+    return ActionChip(
+      label: Text(
+        label,
+        style: GoogleFonts.roboto(
+          fontSize: 11,
+          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+          color: isSelected ? Colors.black : (isDark ? Colors.white : AppColors.textPrimaryLight),
+        ),
+      ),
+      backgroundColor: isSelected ? goldColor : (isDark ? Colors.white10 : Colors.black12),
+      onPressed: () {
+        controller.text = url;
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final themeProvider = Provider.of<ThemeProvider>(context);
@@ -244,70 +380,87 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
           const SizedBox(height: 12),
 
-          // Theme Switcher Tile
-          Container(
-            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-            decoration: BoxDecoration(
-              color: isDark ? Colors.white.withValues(alpha: 0.05) : const Color(0xF5FFFFFF),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(
-                color: isDark ? Colors.white24 : goldColor.withValues(alpha: 0.35),
-                width: 1.0,
+          // Theme Selector Tile
+          GestureDetector(
+            onTap: () => showThemePickerSheet(context, isDark),
+            child: Container(
+              padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+              decoration: BoxDecoration(
+                color: isDark ? Colors.white.withValues(alpha: 0.05) : const Color(0xF5FFFFFF),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: isDark ? Colors.white24 : goldColor.withValues(alpha: 0.35),
+                  width: 1.0,
+                ),
+                boxShadow: isDark
+                    ? null
+                    : [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.04),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
               ),
-              boxShadow: isDark
-                  ? null
-                  : [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.04),
-                        blurRadius: 8,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
-            ),
-            child: Row(
-              children: [
-                Icon(
-                  isDark ? Icons.dark_mode_rounded : Icons.light_mode_rounded,
-                  color: isDark ? AppColors.goldLight : AppColors.goldPrimaryDark,
-                  size: 22,
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        isDark ? context.tr('theme_active_dark') : context.tr('theme_active_light'),
-                        style: GoogleFonts.roboto(
-                          color: isDark ? Colors.white : AppColors.textPrimaryLight,
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
-                          shadows: textShadows,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        isDark ? context.tr('theme_desc_dark') : context.tr('theme_desc_light'),
-                        style: GoogleFonts.roboto(
-                          color: isDark ? Colors.white54 : AppColors.textSecondaryLight,
-                          fontSize: 11,
-                          shadows: textShadows,
-                        ),
-                      ),
-                    ],
+              child: Row(
+                children: [
+                  Icon(
+                    themeProvider.themeMode == ThemeMode.system
+                        ? Icons.brightness_auto_rounded
+                        : (isDark ? Icons.dark_mode_rounded : Icons.light_mode_rounded),
+                    color: goldColor,
+                    size: 22,
                   ),
-                ),
-                Switch(
-                  value: !isDark,
-                  activeThumbColor: AppColors.goldPrimaryDark,
-                  activeTrackColor: const Color(0xFFFEA703).withValues(alpha: 0.35),
-                  inactiveThumbColor: AppColors.goldPrimary,
-                  inactiveTrackColor: Colors.white24,
-                  onChanged: (bool value) {
-                    themeProvider.setThemeMode(value ? ThemeMode.light : ThemeMode.dark);
-                  },
-                ),
-              ],
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          themeProvider.themeMode == ThemeMode.system
+                              ? context.tr('theme_mode_system')
+                              : (isDark ? context.tr('theme_mode_dark') : context.tr('theme_mode_light')),
+                          style: GoogleFonts.roboto(
+                            color: isDark ? Colors.white : AppColors.textPrimaryLight,
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                            shadows: textShadows,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          themeProvider.themeMode == ThemeMode.system
+                              ? '${context.tr('theme_desc_system')} (${isDark ? context.tr('theme_mode_dark') : context.tr('theme_mode_light')})'
+                              : (isDark ? context.tr('theme_desc_light') : context.tr('theme_desc_dark')),
+                          style: GoogleFonts.roboto(
+                            color: isDark ? Colors.white54 : AppColors.textSecondaryLight,
+                            fontSize: 11,
+                            shadows: textShadows,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: goldColor.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: goldColor.withValues(alpha: 0.4), width: 1),
+                    ),
+                    child: Text(
+                      themeProvider.themeMode == ThemeMode.system
+                          ? 'AUTO'
+                          : (isDark ? 'DARK' : 'LIGHT'),
+                      style: GoogleFonts.cinzel(
+                        color: goldColor,
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
           const SizedBox(height: 24),
@@ -399,6 +552,89 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ],
               ),
             ),
+          ),
+          const SizedBox(height: 24),
+
+          // Section Title: API SERVER
+          Text(
+            'API SERVER',
+            style: GoogleFonts.cinzel(
+              color: goldColor,
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 1.0,
+              shadows: textShadows,
+            ),
+          ),
+          const SizedBox(height: 12),
+
+          // API Server Selector Tile
+          Consumer<AstrologyApiProvider>(
+            builder: (context, apiProvider, _) {
+              return GestureDetector(
+                onTap: () => _showServerConfigDialog(context, isDark),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+                  decoration: BoxDecoration(
+                    color: isDark ? Colors.white.withValues(alpha: 0.05) : const Color(0xF5FFFFFF),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: isDark ? Colors.white24 : goldColor.withValues(alpha: 0.35),
+                      width: 1.0,
+                    ),
+                    boxShadow: isDark
+                        ? null
+                        : [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.04),
+                              blurRadius: 8,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.cloud_sync_outlined,
+                        color: goldColor,
+                        size: 22,
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              apiProvider.baseUrl,
+                              style: GoogleFonts.roboto(
+                                color: isDark ? Colors.white : AppColors.textPrimaryLight,
+                                fontSize: 13,
+                                fontWeight: FontWeight.bold,
+                                shadows: textShadows,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              'Tap to configure backend server address',
+                              style: GoogleFonts.roboto(
+                                color: isDark ? Colors.white54 : AppColors.textSecondaryLight,
+                                fontSize: 11,
+                                shadows: textShadows,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Icon(
+                        Icons.chevron_right_rounded,
+                        color: isDark ? Colors.white38 : AppColors.textMutedLight,
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
           ),
           const SizedBox(height: 24),
 

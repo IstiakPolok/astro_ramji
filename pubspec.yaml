@@ -39,6 +39,10 @@ dependencies:
   google_fonts: ^6.2.1
   video_player: ^2.11.1
   persistent_bottom_nav_bar: ^6.2.1
+  shared_preferences: ^2.5.5
+  http: ^1.6.0
+  path_provider: ^2.1.6
+  open_filex: ^4.7.0
 
 dev_dependencies:
   flutter_test:

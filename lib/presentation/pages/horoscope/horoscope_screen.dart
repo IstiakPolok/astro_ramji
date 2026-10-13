@@ -6,42 +6,8 @@ import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_assets.dart';
 import '../../../core/localization/app_localizations.dart';
 import '../../providers/theme_provider.dart';
-
-class ZodiacSign {
-  final String keyName;
-  final String fallbackName;
-  final String sanskritName;
-  final String symbol;
-  final String dateRange;
-  final Color themeColor;
-  final String overview;
-  final String career;
-  final String love;
-  final String health;
-  final int loveRating;
-  final int careerRating;
-  final int healthRating;
-  final String luckyColor;
-  final int luckyNumber;
-
-  const ZodiacSign({
-    required this.keyName,
-    required this.fallbackName,
-    required this.sanskritName,
-    required this.symbol,
-    required this.dateRange,
-    required this.themeColor,
-    required this.overview,
-    required this.career,
-    required this.love,
-    required this.health,
-    required this.loveRating,
-    required this.careerRating,
-    required this.healthRating,
-    required this.luckyColor,
-    required this.luckyNumber,
-  });
-}
+import '../../providers/astrology_api_provider.dart';
+import '../../../data/models/horoscope_model.dart';
 
 class HoroscopeScreen extends StatefulWidget {
   const HoroscopeScreen({super.key});
@@ -57,219 +23,32 @@ class _HoroscopeScreenState extends State<HoroscopeScreen> {
   // Selected sign index
   int _selectedSignIndex = 0;
 
-  // Selected timeframe tab (0 = Today, 1 = Weekly, 2 = Yearly)
+  // Selected timeframe tab (0 = Today/Daily, 1 = Monthly, 2 = Yearly)
   int _selectedTimeframe = 0;
 
-  final List<ZodiacSign> _zodiacs = const [
-    ZodiacSign(
-      keyName: 'aries',
-      fallbackName: 'Aries',
-      sanskritName: 'Mesha',
-      symbol: '♈',
-      dateRange: 'Mar 21 - Apr 19',
-      themeColor: Colors.redAccent,
-      overview: 'Today brings fresh opportunities to assert yourself. Mars in your sign fuels your passion and determination. Trust your gut instincts and take bold steps forward.',
-      career: 'A collaborative project might require your leadership. Keep communication channels open and clear to avoid misunderstandings.',
-      love: 'Passion is high today. If you are in a relationship, share your long-term goals with your partner. Singles may find an unexpected attraction.',
-      health: 'Energy levels are solid, but avoid overexertion. Ensure you balance active work with deep rest.',
-      loveRating: 4,
-      careerRating: 5,
-      healthRating: 4,
-      luckyColor: 'Red',
-      luckyNumber: 9,
-    ),
-    ZodiacSign(
-      keyName: 'taurus',
-      fallbackName: 'Taurus',
-      sanskritName: 'Vrishabha',
-      symbol: '♉',
-      dateRange: 'Apr 20 - May 20',
-      themeColor: Colors.green,
-      overview: 'Focus on stability and ground your thoughts. Venus supports your creative endeavors today. Patience will yield rewards in both personal and professional spheres.',
-      career: 'Financial planning is highly favored today. Take a second look at your monthly budget before making major business investments.',
-      love: 'Comfort and warmth dominate your relationship sector. A quiet, cozy evening with your loved one will strengthen your emotional bond.',
-      health: 'Mindfulness and breathing exercises will help relieve minor tension in the neck and shoulders.',
-      loveRating: 5,
-      careerRating: 4,
-      healthRating: 4,
-      luckyColor: 'Emerald Green',
-      luckyNumber: 6,
-    ),
-    ZodiacSign(
-      keyName: 'gemini',
-      fallbackName: 'Gemini',
-      sanskritName: 'Mithuna',
-      symbol: '♊',
-      dateRange: 'May 21 - Jun 20',
-      themeColor: Colors.cyan,
-      overview: 'Your intellectual curiosity is peaked today. Engaging in stimulating conversations will bring new ideas and helpful alliances. Keep your mind open to criticism.',
-      career: 'Multi-tasking is your strength today. Just make sure to finish one primary goal before moving to next project.',
-      love: 'Playful banter and lighthearted flirtation keep your spirits high. Ensure you also express deep emotional sincerity.',
-      health: 'Mental fatigue is possible due to excessive screen time. Rest your eyes and take short walking breaks.',
-      loveRating: 4,
-      careerRating: 4,
-      healthRating: 3,
-      luckyColor: 'Yellow',
-      luckyNumber: 5,
-    ),
-    ZodiacSign(
-      keyName: 'cancer',
-      fallbackName: 'Cancer',
-      sanskritName: 'Karka',
-      symbol: '♋',
-      dateRange: 'Jun 21 - Jul 22',
-      themeColor: Colors.purpleAccent,
-      overview: 'Your emotional sensitivity is your superpower today. You are highly receptive to the needs of others. Trust your instincts when dealing with complex family situations.',
-      career: 'A nurturing work environment helps you thrive. Support a colleague who might be struggling with their workload.',
-      love: 'Deep, emotional conversations are favored. Share your inner feelings to build a strong foundation of trust with your partner.',
-      health: 'Paying attention to your digestive health will prevent discomfort. Home-cooked, warm meals are recommended.',
-      loveRating: 5,
-      careerRating: 4,
-      healthRating: 4,
-      luckyColor: 'Silver / White',
-      luckyNumber: 2,
-    ),
-    ZodiacSign(
-      keyName: 'leo',
-      fallbackName: 'Leo',
-      sanskritName: 'Simha',
-      symbol: '♌',
-      dateRange: 'Jul 23 - Aug 22',
-      themeColor: Colors.amber,
-      overview: 'Your natural charisma shines bright today. Sun, your ruler, gives you the strength to overcome minor obstacles. Share your warmth and inspire those around you.',
-      career: 'Your efforts are finally noticed by seniors. It is an excellent day to present fresh ideas or pitch creative projects.',
-      love: 'Generosity and loyalty strengthen your romance. Surprise your partner with a thoughtful gesture to show appreciation.',
-      health: 'Cardiovascular energy is high. An intense workout or a brisk walk outdoors will boost your mood and metabolism.',
-      loveRating: 4,
-      careerRating: 5,
-      healthRating: 5,
-      luckyColor: 'Gold',
-      luckyNumber: 1,
-    ),
-    ZodiacSign(
-      keyName: 'virgo',
-      fallbackName: 'Virgo',
-      sanskritName: 'Kanya',
-      symbol: '♍',
-      dateRange: 'Aug 23 - Sep 22',
-      themeColor: Colors.orange,
-      overview: 'Attention to detail will save the day. Your analytical skills help you solve a complex issue that others missed. Stay organized and declutter your environment.',
-      career: 'Focus on refining your strategies. Quality is far more important than quantity in your output today.',
-      love: 'Practical expressions of love are highly appreciated. Helping your partner with chores or tasks speaks louder than words today.',
-      health: 'Maintain a clean diet. Avoiding processed foods will keep your energy levels steady throughout the afternoon.',
-      loveRating: 4,
-      careerRating: 5,
-      healthRating: 4,
-      luckyColor: 'Navy Blue',
-      luckyNumber: 3,
-    ),
-    ZodiacSign(
-      keyName: 'libra',
-      fallbackName: 'Libra',
-      sanskritName: 'Tula',
-      symbol: '♎',
-      dateRange: 'Sep 23 - Oct 22',
-      themeColor: Colors.pinkAccent,
-      overview: 'Balance and harmony are your primary goals today. Seek compromise instead of arguments. Art, music, and beautiful environments will lift your spirits.',
-      career: 'Negotiations and client meetings go extremely well. Your pleasant demeanor helps build trust and reach mutually beneficial outcomes.',
-      love: 'Romance is in the air. A sweet, harmonious connection is highlighted. Share soft moments and appreciate each other\'s presence.',
-      health: 'Keep hydration levels high. Minor back stiffness can be relieved with gentle yoga stretches.',
-      loveRating: 5,
-      careerRating: 4,
-      healthRating: 4,
-      luckyColor: 'Pastel Pink',
-      luckyNumber: 7,
-    ),
-    ZodiacSign(
-      keyName: 'scorpio',
-      fallbackName: 'Scorpio',
-      sanskritName: 'Vrishchika',
-      symbol: '♏',
-      dateRange: 'Oct 23 - Nov 21',
-      themeColor: Colors.deepPurple,
-      overview: 'Your intensity and focus are unmatched today. You can see through facades and uncover truths. Trust your intuition and keep your strategies confidential.',
-      career: 'A research-based project yields valuable data. Dive deep into problems and don\'t stop until you find the source.',
-      love: 'Intimate and passionate dynamics define your romance. Authentic connections matter more to you than superficial conversations.',
-      health: 'Repressed stress can affect your well-being. Dedicate time to intense physical workouts or deep meditation to release energy.',
-      loveRating: 4,
-      careerRating: 4,
-      healthRating: 5,
-      luckyColor: 'Maroon',
-      luckyNumber: 8,
-    ),
-    ZodiacSign(
-      keyName: 'sagittarius',
-      fallbackName: 'Sagittarius',
-      sanskritName: 'Dhanu',
-      symbol: '♐',
-      dateRange: 'Nov 22 - Dec 21',
-      themeColor: Colors.blueAccent,
-      overview: 'Your optimistic spirit is contagious today. Expanding your boundaries through reading, planning a trip, or philosophy brings joy. Embrace new opportunities.',
-      career: 'A broad perspective helps you solve a persistent team problem. Focus on the big picture instead of getting bogged down in minor details.',
-      love: 'Adventure and exploration are highlight elements. Plan a fun outing or try a new activity together to spark romance.',
-      health: 'Outdoor activities are highly beneficial for your physical and mental health. Connect with nature.',
-      loveRating: 5,
-      careerRating: 4,
-      healthRating: 5,
-      luckyColor: 'Purple',
-      luckyNumber: 3,
-    ),
-    ZodiacSign(
-      keyName: 'capricorn',
-      fallbackName: 'Capricorn',
-      sanskritName: 'Makara',
-      symbol: '♑',
-      dateRange: 'Dec 22 - Jan 19',
-      themeColor: Colors.blueGrey,
-      overview: 'Discipline and focus yield massive rewards today. Saturn, your ruler, supports structural planning and career building. Stay dedicated to your long-term goals.',
-      career: 'Your persistent hard work is noticed by higher authorities. Remain humble and keep delivering consistent performance.',
-      love: 'Reliability and commitment are key themes. Being a steady pillar of support for your partner deepens relationship security.',
-      health: 'Pay attention to joint health. Stretching and joint strengthening exercises are recommended.',
-      loveRating: 4,
-      careerRating: 5,
-      healthRating: 4,
-      luckyColor: 'Dark Grey / Brown',
-      luckyNumber: 4,
-    ),
-    ZodiacSign(
-      keyName: 'aquarius',
-      fallbackName: 'Aquarius',
-      sanskritName: 'Kumbha',
-      symbol: '♒',
-      dateRange: 'Jan 20 - Feb 18',
-      themeColor: Colors.indigoAccent,
-      overview: 'Innovative thinking and community values define your day. Share your unique perspective with friends or groups. Your forward-looking views inspire progress.',
-      career: 'Technology or collaborative brainstorming helps resolve a complex block. Don\'t be afraid to propose unconventional ideas.',
-      love: 'Friendship forms the base of your romantic connections. Enjoy intellectually stimulating conversations together.',
-      health: 'Restless mind can affect sleep. Limit screen time before bed and try reading a book.',
-      loveRating: 4,
-      careerRating: 4,
-      healthRating: 3,
-      luckyColor: 'Electric Blue',
-      luckyNumber: 8,
-    ),
-    ZodiacSign(
-      keyName: 'pisces',
-      fallbackName: 'Pisces',
-      sanskritName: 'Meena',
-      symbol: '♓',
-      dateRange: 'Feb 19 - Mar 20',
-      themeColor: Color(0xFF9C27B0),
-      overview: 'Dreamy and highly intuitive vibes surround you. Trust your creative impulses and make time for artistic expressions. Your spiritual connection is very strong today.',
-      career: 'Trust your creative instincts. An empathetic approach to team conflicts helps bring smooth alignment.',
-      love: 'Romantic ideals and emotional sensitivity dominate. Share your dreams and show soft, gentle care to your partner.',
-      health: 'Take gentle care of your feet and ensure proper rest. A warm bath or foot massage will bring relaxation.',
-      loveRating: 5,
-      careerRating: 4,
-      healthRating: 4,
-      luckyColor: 'Sea Green / Yellow',
-      luckyNumber: 7,
-    ),
-  ];
+  String get _currentPeriodType {
+    switch (_selectedTimeframe) {
+      case 0:
+        return 'daily';
+      case 1:
+        return 'monthly';
+      case 2:
+        return 'yearly';
+      default:
+        return 'daily';
+    }
+  }
 
   @override
   void initState() {
     super.initState();
+    _initVideo();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadInitialData();
+    });
+  }
+
+  void _initVideo() {
     _videoController = VideoPlayerController.asset(AppAssets.videoHomeBg)
       ..initialize().then((_) {
         if (mounted) {
@@ -284,6 +63,29 @@ class _HoroscopeScreenState extends State<HoroscopeScreen> {
       });
   }
 
+  Future<void> _loadInitialData() async {
+    final provider = Provider.of<AstrologyApiProvider>(context, listen: false);
+    await provider.fetchHoroscopeSigns();
+    if (!mounted) return;
+    final signs = provider.zodiacSigns.isNotEmpty
+        ? provider.zodiacSigns
+        : ZodiacSignModel.defaultSigns;
+    final currentSign = signs[_selectedSignIndex.clamp(0, signs.length - 1)];
+    provider.fetchHoroscope(
+      zodiac: currentSign.slug,
+      periodType: _currentPeriodType,
+    );
+  }
+
+  void _loadHoroscope(String slug, {bool forceRefresh = false}) {
+    final provider = Provider.of<AstrologyApiProvider>(context, listen: false);
+    provider.fetchHoroscope(
+      zodiac: slug,
+      periodType: _currentPeriodType,
+      forceRefresh: forceRefresh,
+    );
+  }
+
   @override
   void dispose() {
     _videoController?.dispose();
@@ -293,15 +95,22 @@ class _HoroscopeScreenState extends State<HoroscopeScreen> {
   @override
   Widget build(BuildContext context) {
     final themeProvider = Provider.of<ThemeProvider>(context);
+    final apiProvider = Provider.of<AstrologyApiProvider>(context);
     final isDark = themeProvider.isDarkMode;
-    final activeZodiac = _zodiacs[_selectedSignIndex];
+
+    final signs = apiProvider.zodiacSigns.isNotEmpty
+        ? apiProvider.zodiacSigns
+        : ZodiacSignModel.defaultSigns;
+    final safeIndex = _selectedSignIndex.clamp(0, signs.length - 1);
+    final activeZodiac = signs[safeIndex];
+    final activeHoroscope = apiProvider.currentHoroscope;
 
     return Scaffold(
       backgroundColor: AppColors.getBackground(isDark),
       body: SafeArea(
         child: Stack(
           children: [
-            // Background
+            // Background Video or Image
             Positioned.fill(
               child: isDark
                   ? (_isVideoInitialized && _videoController != null
@@ -331,31 +140,52 @@ class _HoroscopeScreenState extends State<HoroscopeScreen> {
               ),
             ),
 
-            // Scrollable Content
+            // Scrollable Content with Pull-To-Refresh
             SafeArea(
               bottom: false,
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const SizedBox(height: 12),
-                    // Header Brand
-                    Center(child: _buildHeaderTitle(isDark)),
-                    const SizedBox(height: 24),
+              child: RefreshIndicator(
+                color: AppColors.goldPrimary,
+                backgroundColor: isDark ? const Color(0xFF1E1E28) : Colors.white,
+                onRefresh: () async {
+                  await Future.wait([
+                    apiProvider.fetchHoroscopeSigns(),
+                    apiProvider.fetchHoroscope(
+                      zodiac: activeZodiac.slug,
+                      periodType: _currentPeriodType,
+                      forceRefresh: true,
+                    ),
+                  ]);
+                },
+                child: SingleChildScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const SizedBox(height: 12),
+                      // Header Brand
+                      Center(child: _buildHeaderTitle(isDark)),
+                      const SizedBox(height: 24),
 
-                    // Zodiac Sign Selector
-                    _buildHorizontalZodiacSelector(isDark),
-                    const SizedBox(height: 24),
+                      // Zodiac Sign Selector
+                      _buildHorizontalZodiacSelector(signs, safeIndex, isDark),
+                      const SizedBox(height: 24),
 
-                    // Timeframe Tabs (Today, Weekly, Yearly)
-                    _buildTimeframeTabBar(isDark),
-                    const SizedBox(height: 24),
+                      // Timeframe Tabs (Today/Daily, Monthly, Yearly)
+                      _buildTimeframeTabBar(isDark, activeZodiac),
+                      const SizedBox(height: 24),
 
-                    // Main Content Card
-                    _buildHoroscopeCard(activeZodiac, isDark),
-                    const SizedBox(height: 24),
-                  ],
+                      // Main Dynamic Horoscope Card
+                      _buildHoroscopeCard(
+                        zodiac: activeZodiac,
+                        horoscope: activeHoroscope,
+                        isLoading: apiProvider.isLoadingHoroscope,
+                        error: apiProvider.horoscopeError,
+                        isDark: isDark,
+                      ),
+                      const SizedBox(height: 28),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -396,7 +226,11 @@ class _HoroscopeScreenState extends State<HoroscopeScreen> {
     );
   }
 
-  Widget _buildHorizontalZodiacSelector(bool isDark) {
+  Widget _buildHorizontalZodiacSelector(
+    List<ZodiacSignModel> signs,
+    int selectedIndex,
+    bool isDark,
+  ) {
     final goldColor = AppColors.getGold(isDark);
     final textShadows = AppColors.getTextShadows(isDark);
 
@@ -404,17 +238,21 @@ class _HoroscopeScreenState extends State<HoroscopeScreen> {
       height: 76,
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
-        itemCount: _zodiacs.length,
+        itemCount: signs.length,
         itemBuilder: (context, index) {
-          final zodiac = _zodiacs[index];
-          final isSelected = _selectedSignIndex == index;
-          final localizedName = context.tr(zodiac.keyName);
+          final zodiac = signs[index];
+          final isSelected = selectedIndex == index;
+          final localized = context.tr(zodiac.slug);
+          final displayName = localized != zodiac.slug ? localized : zodiac.name;
 
           return GestureDetector(
             onTap: () {
-              setState(() {
-                _selectedSignIndex = index;
-              });
+              if (_selectedSignIndex != index) {
+                setState(() {
+                  _selectedSignIndex = index;
+                });
+                _loadHoroscope(zodiac.slug);
+              }
             },
             child: Container(
               margin: const EdgeInsets.only(right: 12),
@@ -429,7 +267,9 @@ class _HoroscopeScreenState extends State<HoroscopeScreen> {
                         : Colors.white.withValues(alpha: 0.85)),
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(
-                  color: isSelected ? goldColor : (isDark ? Colors.white24 : const Color(0x30D4A827)),
+                  color: isSelected
+                      ? goldColor
+                      : (isDark ? Colors.white24 : const Color(0x30D4A827)),
                   width: 1.2,
                 ),
                 boxShadow: isDark
@@ -448,14 +288,16 @@ class _HoroscopeScreenState extends State<HoroscopeScreen> {
                   Text(
                     zodiac.symbol,
                     style: TextStyle(
-                      color: isSelected ? goldColor : (isDark ? Colors.white70 : AppColors.textSecondaryLight),
+                      color: isSelected
+                          ? goldColor
+                          : (isDark ? Colors.white70 : AppColors.textSecondaryLight),
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    localizedName,
+                    displayName,
                     style: GoogleFonts.roboto(
                       color: isSelected
                           ? (isDark ? Colors.white : AppColors.textPrimaryLight)
@@ -474,7 +316,7 @@ class _HoroscopeScreenState extends State<HoroscopeScreen> {
     );
   }
 
-  Widget _buildTimeframeTabBar(bool isDark) {
+  Widget _buildTimeframeTabBar(bool isDark, ZodiacSignModel activeZodiac) {
     return Container(
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
@@ -484,21 +326,35 @@ class _HoroscopeScreenState extends State<HoroscopeScreen> {
       ),
       child: Row(
         children: [
-          Expanded(child: _buildTimeframeTab(0, context.tr('today'), isDark)),
-          Expanded(child: _buildTimeframeTab(1, context.tr('weekly'), isDark)),
-          Expanded(child: _buildTimeframeTab(2, context.tr('yearly'), isDark)),
+          Expanded(
+            child: _buildTimeframeTab(0, context.tr('today'), isDark, activeZodiac),
+          ),
+          Expanded(
+            child: _buildTimeframeTab(1, context.tr('monthly'), isDark, activeZodiac),
+          ),
+          Expanded(
+            child: _buildTimeframeTab(2, context.tr('yearly'), isDark, activeZodiac),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildTimeframeTab(int index, String label, bool isDark) {
+  Widget _buildTimeframeTab(
+    int index,
+    String label,
+    bool isDark,
+    ZodiacSignModel activeZodiac,
+  ) {
     final isSelected = _selectedTimeframe == index;
     return GestureDetector(
       onTap: () {
-        setState(() {
-          _selectedTimeframe = index;
-        });
+        if (_selectedTimeframe != index) {
+          setState(() {
+            _selectedTimeframe = index;
+          });
+          _loadHoroscope(activeZodiac.slug);
+        }
       },
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 12),
@@ -524,12 +380,152 @@ class _HoroscopeScreenState extends State<HoroscopeScreen> {
     );
   }
 
-  Widget _buildHoroscopeCard(ZodiacSign zodiac, bool isDark) {
+  Widget _buildHoroscopeCard({
+    required ZodiacSignModel zodiac,
+    required HoroscopeModel? horoscope,
+    required bool isLoading,
+    required String? error,
+    required bool isDark,
+  }) {
     final goldColor = AppColors.getGold(isDark);
     final textShadows = AppColors.getTextShadows(isDark);
     final textPrimary = isDark ? Colors.white : AppColors.textPrimaryLight;
     final textSecondary = isDark ? Colors.white70 : AppColors.textSecondaryLight;
-    final localizedName = context.tr(zodiac.keyName);
+
+    final localized = context.tr(zodiac.slug);
+    final displayName = localized != zodiac.slug ? localized : zodiac.name;
+
+    // Loading card when no data yet
+    if (isLoading && horoscope == null) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(vertical: 60, horizontal: 24),
+        decoration: BoxDecoration(
+          color: isDark ? Colors.white.withValues(alpha: 0.05) : const Color(0xF5FFFFFF),
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(
+            color: isDark ? Colors.white24 : goldColor.withValues(alpha: 0.4),
+            width: 1.0,
+          ),
+        ),
+        child: Column(
+          children: [
+            SizedBox(
+              width: 44,
+              height: 44,
+              child: CircularProgressIndicator(
+                strokeWidth: 2.5,
+                color: goldColor,
+              ),
+            ),
+            const SizedBox(height: 20),
+            Text(
+              'Aligning celestial coordinates for $displayName...',
+              textAlign: TextAlign.center,
+              style: GoogleFonts.cinzel(
+                color: goldColor,
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                letterSpacing: 0.8,
+                shadows: textShadows,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    // Error card when initial request fails
+    if (error != null && horoscope == null) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 24),
+        decoration: BoxDecoration(
+          color: isDark ? Colors.white.withValues(alpha: 0.05) : const Color(0xF5FFFFFF),
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(
+            color: Colors.redAccent.withValues(alpha: 0.4),
+            width: 1.0,
+          ),
+        ),
+        child: Column(
+          children: [
+            const Icon(
+              Icons.cloud_off_rounded,
+              color: Colors.redAccent,
+              size: 40,
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'Unable to load horoscope',
+              style: GoogleFonts.cinzel(
+                color: textPrimary,
+                fontSize: 15,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              'Please check your network connection and try again.',
+              textAlign: TextAlign.center,
+              style: GoogleFonts.roboto(
+                color: textSecondary,
+                fontSize: 12,
+              ),
+            ),
+            const SizedBox(height: 16),
+            OutlinedButton.icon(
+              onPressed: () => _loadHoroscope(zodiac.slug, forceRefresh: true),
+              icon: const Icon(Icons.refresh_rounded, size: 16),
+              label: const Text('RETRY'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: goldColor,
+                side: BorderSide(color: goldColor),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    // Dynamic data card
+    final displaySymbol = (horoscope?.symbol.isNotEmpty == true)
+        ? horoscope!.symbol
+        : zodiac.symbol;
+    final displaySanskrit = (horoscope?.sanskrit.isNotEmpty == true)
+        ? horoscope!.sanskrit
+        : zodiac.sanskrit;
+    final displayDateRange = (horoscope?.dateRange.isNotEmpty == true)
+        ? horoscope!.dateRange
+        : zodiac.dateRange;
+    final displayPeriod = horoscope?.period ?? '';
+    final displayElement = horoscope?.element ?? (zodiac.element.isNotEmpty ? zodiac.element : null);
+    final displayPlanet = horoscope?.rulingPlanet ?? (zodiac.rulingPlanet.isNotEmpty ? zodiac.rulingPlanet : null);
+
+    final loveRating = horoscope?.stellarRatings.love ?? 4;
+    final careerRating = horoscope?.stellarRatings.career ?? 4;
+    final healthRating = horoscope?.stellarRatings.health ?? 4;
+
+    final luckyColor = horoscope?.luckyColor.isNotEmpty == true
+        ? horoscope!.luckyColor
+        : 'Gold';
+    final luckyNumber = horoscope != null ? horoscope.luckyNumber.toString() : '7';
+
+    final overviewText = horoscope?.sections.overview.isNotEmpty == true
+        ? horoscope!.sections.overview
+        : 'Cosmic alignments favor positive transformation and steady spiritual grounding.';
+    final careerText = horoscope?.sections.career.isNotEmpty == true
+        ? horoscope!.sections.career
+        : 'Focus on thoughtful execution and clear workplace communications today.';
+    final loveText = horoscope?.sections.love.isNotEmpty == true
+        ? horoscope!.sections.love
+        : 'Patience and warmth strengthen your closest connections.';
+    final healthText = horoscope?.sections.health.isNotEmpty == true
+        ? horoscope!.sections.health
+        : 'Prioritize adequate hydration, restorative rest, and mindful movement.';
 
     return Container(
       width: double.infinity,
@@ -554,8 +550,23 @@ class _HoroscopeScreenState extends State<HoroscopeScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Subtle refresh bar if updating in background
+          if (isLoading)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 12.0),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(4),
+                child: LinearProgressIndicator(
+                  minHeight: 2,
+                  backgroundColor: goldColor.withValues(alpha: 0.15),
+                  valueColor: AlwaysStoppedAnimation<Color>(goldColor),
+                ),
+              ),
+            ),
+
           // Sign Title, Sanskrit Name, and Dates
           Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Container(
                 width: 52,
@@ -570,7 +581,7 @@ class _HoroscopeScreenState extends State<HoroscopeScreen> {
                 ),
                 child: Center(
                   child: Text(
-                    zodiac.symbol,
+                    displaySymbol,
                     style: TextStyle(
                       color: zodiac.themeColor,
                       fontSize: 24,
@@ -586,30 +597,35 @@ class _HoroscopeScreenState extends State<HoroscopeScreen> {
                   children: [
                     Row(
                       children: [
-                        Text(
-                          localizedName.toUpperCase(),
-                          style: GoogleFonts.cinzel(
-                            color: textPrimary,
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            shadows: textShadows,
+                        Flexible(
+                          child: Text(
+                            displayName.toUpperCase(),
+                            style: GoogleFonts.cinzel(
+                              color: textPrimary,
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              shadows: textShadows,
+                            ),
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ),
-                        const SizedBox(width: 8),
-                        Text(
-                          '(${zodiac.sanskritName})',
-                          style: GoogleFonts.roboto(
-                            color: goldColor,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                            shadows: textShadows,
+                        if (displaySanskrit.isNotEmpty) ...[
+                          const SizedBox(width: 6),
+                          Text(
+                            '($displaySanskrit)',
+                            style: GoogleFonts.roboto(
+                              color: goldColor,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              shadows: textShadows,
+                            ),
                           ),
-                        ),
+                        ],
                       ],
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      zodiac.dateRange,
+                      displayDateRange,
                       style: GoogleFonts.roboto(
                         color: textSecondary,
                         fontSize: 11,
@@ -619,15 +635,62 @@ class _HoroscopeScreenState extends State<HoroscopeScreen> {
                   ],
                 ),
               ),
+              if (displayPeriod.isNotEmpty)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: goldColor.withValues(alpha: isDark ? 0.12 : 0.08),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: goldColor.withValues(alpha: 0.4),
+                      width: 0.8,
+                    ),
+                  ),
+                  child: Text(
+                    displayPeriod,
+                    style: GoogleFonts.roboto(
+                      color: goldColor,
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                      shadows: textShadows,
+                    ),
+                  ),
+                ),
             ],
           ),
+
+          // Element & Ruling Planet chips if available
+          if (displayElement != null || displayPlanet != null) ...[
+            const SizedBox(height: 16),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                if (displayElement != null && displayElement.isNotEmpty)
+                  _buildAttributeChip(
+                    context.tr('element'),
+                    displayElement,
+                    Icons.bubble_chart_rounded,
+                    isDark,
+                  ),
+                if (displayPlanet != null && displayPlanet.isNotEmpty)
+                  _buildAttributeChip(
+                    context.tr('ruling_planet'),
+                    displayPlanet,
+                    Icons.public_rounded,
+                    isDark,
+                  ),
+              ],
+            ),
+          ],
+
           Divider(
             color: isDark ? Colors.white12 : const Color(0x20D4A827),
             height: 32,
             thickness: 1.0,
           ),
 
-          // Daily Ratings / Progress
+          // Stellar Ratings
           Text(
             context.tr('todays_ratings'),
             style: GoogleFonts.cinzel(
@@ -639,20 +702,43 @@ class _HoroscopeScreenState extends State<HoroscopeScreen> {
             ),
           ),
           const SizedBox(height: 14),
-          _buildRatingRow(context.tr('love_relationship'), zodiac.loveRating, Colors.pinkAccent, isDark),
-          _buildRatingRow(context.tr('career_finance'), zodiac.careerRating, goldColor, isDark),
-          _buildRatingRow(context.tr('health_energy'), zodiac.healthRating, isDark ? Colors.greenAccent : const Color(0xFF2E7D32), isDark),
+          _buildRatingRow(
+            context.tr('love_relationship'),
+            loveRating,
+            Colors.pinkAccent,
+            isDark,
+          ),
+          _buildRatingRow(
+            context.tr('career_finance'),
+            careerRating,
+            goldColor,
+            isDark,
+          ),
+          _buildRatingRow(
+            context.tr('health_energy'),
+            healthRating,
+            isDark ? Colors.greenAccent : const Color(0xFF2E7D32),
+            isDark,
+          ),
           const SizedBox(height: 24),
 
           // Lucky Parameters Row
           Row(
             children: [
               Expanded(
-                child: _buildLuckyBox(context.tr('lucky_color'), zodiac.luckyColor, isDark),
+                child: _buildLuckyBox(
+                  context.tr('lucky_color'),
+                  luckyColor,
+                  isDark,
+                ),
               ),
               const SizedBox(width: 12),
               Expanded(
-                child: _buildLuckyBox(context.tr('lucky_number'), zodiac.luckyNumber.toString(), isDark),
+                child: _buildLuckyBox(
+                  context.tr('lucky_number'),
+                  luckyNumber,
+                  isDark,
+                ),
               ),
             ],
           ),
@@ -663,10 +749,69 @@ class _HoroscopeScreenState extends State<HoroscopeScreen> {
           ),
 
           // Forecast Descriptions
-          _buildForecastSection(context.tr('general_overview'), zodiac.overview, isDark),
-          _buildForecastSection(context.tr('career_money'), zodiac.career, isDark),
-          _buildForecastSection(context.tr('love_relationships'), zodiac.love, isDark),
-          _buildForecastSection(context.tr('health_wellness'), zodiac.health, isDark),
+          _buildForecastSection(
+            context.tr('general_overview'),
+            overviewText,
+            isDark,
+          ),
+          _buildForecastSection(
+            context.tr('career_money'),
+            careerText,
+            isDark,
+          ),
+          _buildForecastSection(
+            context.tr('love_relationships'),
+            loveText,
+            isDark,
+          ),
+          _buildForecastSection(
+            context.tr('health_wellness'),
+            healthText,
+            isDark,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAttributeChip(
+    String label,
+    String value,
+    IconData icon,
+    bool isDark,
+  ) {
+    final goldColor = AppColors.getGold(isDark);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: isDark ? Colors.white.withValues(alpha: 0.04) : const Color(0xFFF7F4EA),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: isDark ? Colors.white12 : const Color(0x20D4A827),
+          width: 0.8,
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 13, color: goldColor),
+          const SizedBox(width: 5),
+          Text(
+            '$label: ',
+            style: GoogleFonts.cinzel(
+              color: goldColor,
+              fontSize: 9,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          Text(
+            value,
+            style: GoogleFonts.roboto(
+              color: isDark ? Colors.white : AppColors.textPrimaryLight,
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
         ],
       ),
     );

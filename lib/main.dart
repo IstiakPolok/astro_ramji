@@ -4,15 +4,23 @@ import 'package:provider/provider.dart';
 import 'core/router/app_router.dart';
 import 'core/constants/app_colors.dart';
 import 'core/localization/app_localizations.dart';
+import 'core/network/api_client.dart';
 import 'presentation/providers/theme_provider.dart';
 import 'presentation/providers/language_provider.dart';
+import 'presentation/providers/astrology_api_provider.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await ApiClient().init();
+  final themeProvider = ThemeProvider();
+  await themeProvider.init();
+
   runApp(
     MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (_) => ThemeProvider()),
+        ChangeNotifierProvider.value(value: themeProvider),
         ChangeNotifierProvider(create: (_) => LanguageProvider()),
+        ChangeNotifierProvider(create: (_) => AstrologyApiProvider()),
       ],
       child: const MyApp(),
     ),

@@ -89,7 +89,7 @@ class _OnboardingViewState extends State<OnboardingView> {
           value.position >= value.duration &&
           !_video2Completed) {
         _video2Completed = true;
-        context.go('/welcome');
+        context.go('/home');
       }
     });
   }
@@ -193,7 +193,7 @@ class _OnboardingViewState extends State<OnboardingView> {
                 children: [
                   // Skip button (visible on slide 1, or hidden)
                   TextButton(
-                    onPressed: () => context.go('/welcome'),
+                    onPressed: () => context.go('/home'),
                     child: Text(
                       '',
                       style: AppTextStyles.sansBody(
@@ -227,7 +227,7 @@ class _OnboardingViewState extends State<OnboardingView> {
                     ),
                     onPressed: () {
                       onboardingProvider.nextPage(() {
-                        context.go('/welcome');
+                        context.go('/home');
                       });
                     },
                     icon: const Icon(Icons.arrow_forward),

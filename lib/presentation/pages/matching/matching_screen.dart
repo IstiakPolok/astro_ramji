@@ -6,7 +6,12 @@ import 'package:video_player/video_player.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_assets.dart';
 import '../../../core/localization/app_localizations.dart';
+import '../../../data/models/birth_profile_model.dart';
+import '../../../data/models/location_model.dart';
+import '../../../data/models/match_model.dart';
 import '../../providers/theme_provider.dart';
+import '../../providers/astrology_api_provider.dart';
+import '../../widgets/location_autocomplete_field.dart';
 
 class MatchingScreen extends StatefulWidget {
   const MatchingScreen({super.key});
@@ -32,6 +37,9 @@ class _MatchingScreenState extends State<MatchingScreen> {
   final TextEditingController _date1Controller = TextEditingController();
   final TextEditingController _time1Controller = TextEditingController();
   final TextEditingController _place1Controller = TextEditingController();
+  DateTime? _pickedDate1;
+  TimeOfDay? _pickedTime1;
+  LocationModel? _location1;
   String _gender1 = 'MALE';
 
   // Person 2 Data
@@ -40,6 +48,9 @@ class _MatchingScreenState extends State<MatchingScreen> {
   final TextEditingController _date2Controller = TextEditingController();
   final TextEditingController _time2Controller = TextEditingController();
   final TextEditingController _place2Controller = TextEditingController();
+  DateTime? _pickedDate2;
+  TimeOfDay? _pickedTime2;
+  LocationModel? _location2;
   String _gender2 = 'FEMALE';
 
   // Loading Screen Details
@@ -115,8 +126,10 @@ class _MatchingScreenState extends State<MatchingScreen> {
         final formattedDate =
             "${picked.day} ${_getMonthName(picked.month)} ${picked.year}";
         if (isPerson1) {
+          _pickedDate1 = picked;
           _date1Controller.text = formattedDate;
         } else {
+          _pickedDate2 = picked;
           _date2Controller.text = formattedDate;
         }
       });
@@ -155,8 +168,10 @@ class _MatchingScreenState extends State<MatchingScreen> {
     if (picked != null) {
       setState(() {
         if (isPerson1) {
+          _pickedTime1 = picked;
           _time1Controller.text = picked.format(context);
         } else {
+          _pickedTime2 = picked;
           _time2Controller.text = picked.format(context);
         }
       });
@@ -171,8 +186,8 @@ class _MatchingScreenState extends State<MatchingScreen> {
     return months[month - 1];
   }
 
-  // --- Calculation Timer ---
-  void _startMatching() {
+  // --- Calculation Timer & API Call ---
+  void _startMatching() async {
     if (!_formKey2.currentState!.validate()) return;
 
     setState(() {
@@ -180,7 +195,67 @@ class _MatchingScreenState extends State<MatchingScreen> {
       _loadingStep = 0;
     });
 
-    Timer.periodic(const Duration(milliseconds: 700), (timer) {
+    final apiProvider = Provider.of<AstrologyApiProvider>(context, listen: false);
+
+    // If place was typed without selecting autocomplete, dynamically resolve coordinates from API
+    if (_location1 == null && _place1Controller.text.trim().isNotEmpty) {
+      try {
+        final results = await apiProvider.searchLocationsDirect(_place1Controller.text.trim());
+        if (results.isNotEmpty && results.first.placeId.isNotEmpty) {
+          _location1 = await apiProvider.getLocationDetails(results.first.placeId);
+        }
+      } catch (_) {}
+    }
+
+    if (_location2 == null && _place2Controller.text.trim().isNotEmpty) {
+      try {
+        final results = await apiProvider.searchLocationsDirect(_place2Controller.text.trim());
+        if (results.isNotEmpty && results.first.placeId.isNotEmpty) {
+          _location2 = await apiProvider.getLocationDetails(results.first.placeId);
+        }
+      } catch (_) {}
+    }
+
+    String formatDob(DateTime? dt, String fallback) {
+      if (dt != null) {
+        return '${dt.year.toString().padLeft(4, '0')}-${dt.month.toString().padLeft(2, '0')}-${dt.day.toString().padLeft(2, '0')}';
+      }
+      return fallback;
+    }
+
+    String formatTob(TimeOfDay? tod, String fallback) {
+      if (tod != null) {
+        return '${tod.hour.toString().padLeft(2, '0')}:${tod.minute.toString().padLeft(2, '0')}:00';
+      }
+      return fallback;
+    }
+
+    final p1Name = _name1Controller.text.trim();
+    final p2Name = _name2Controller.text.trim();
+
+    final boyData = RawBirthData(
+      name: p1Name.isNotEmpty ? p1Name : 'Partner 1',
+      dateOfBirth: formatDob(_pickedDate1, '1995-01-01'),
+      timeOfBirth: formatTob(_pickedTime1, '12:00:00'),
+      latitude: _location1?.latitude ?? 28.6139,
+      longitude: _location1?.longitude ?? 77.2090,
+      timezone: _location1?.timezoneId ?? 'Asia/Kolkata',
+      gender: _gender1,
+    );
+
+    final girlData = RawBirthData(
+      name: p2Name.isNotEmpty ? p2Name : 'Partner 2',
+      dateOfBirth: formatDob(_pickedDate2, '1996-01-01'),
+      timeOfBirth: formatTob(_pickedTime2, '12:00:00'),
+      latitude: _location2?.latitude ?? 28.6139,
+      longitude: _location2?.longitude ?? 77.2090,
+      timezone: _location2?.timezoneId ?? 'Asia/Kolkata',
+      gender: _gender2,
+    );
+
+    final matchFuture = apiProvider.matchProfiles(boyData: boyData, girlData: girlData);
+
+    Timer.periodic(const Duration(milliseconds: 600), (timer) async {
       if (!mounted) {
         timer.cancel();
         return;
@@ -191,9 +266,12 @@ class _MatchingScreenState extends State<MatchingScreen> {
         });
       } else {
         timer.cancel();
-        setState(() {
-          _currentStep = 3; // Result screen
-        });
+        await matchFuture;
+        if (mounted) {
+          setState(() {
+            _currentStep = 3; // Result screen
+          });
+        }
       }
     });
   }
@@ -292,7 +370,7 @@ class _MatchingScreenState extends State<MatchingScreen> {
             const SizedBox(height: 8),
             _buildTextField(
               controller: _name1Controller,
-              hintText: 'Aarav Sharma',
+              hintText: context.tr('full_name_hint'),
               isDark: isDark,
               validator: (val) => (val == null || val.trim().isEmpty)
                   ? 'Please enter full name'
@@ -331,10 +409,16 @@ class _MatchingScreenState extends State<MatchingScreen> {
             // Place of birth
             _buildLabelRow(Icons.location_on_outlined, context.tr('place_of_birth'), isDark),
             const SizedBox(height: 8),
-            _buildTextField(
+            LocationAutocompleteField(
               controller: _place1Controller,
-              hintText: 'Mumbai, India',
+              label: '',
+              hint: 'Mumbai, India',
               isDark: isDark,
+              onLocationSelected: (loc) {
+                setState(() {
+                  _location1 = loc;
+                });
+              },
               validator: (val) => (val == null || val.trim().isEmpty)
                   ? 'Please enter place of birth'
                   : null,
@@ -396,7 +480,7 @@ class _MatchingScreenState extends State<MatchingScreen> {
             const SizedBox(height: 8),
             _buildTextField(
               controller: _name2Controller,
-              hintText: 'Priya Patel',
+              hintText: context.tr('full_name_hint'),
               isDark: isDark,
               validator: (val) => (val == null || val.trim().isEmpty)
                   ? 'Please enter full name'
@@ -435,10 +519,16 @@ class _MatchingScreenState extends State<MatchingScreen> {
             // Place of birth
             _buildLabelRow(Icons.location_on_outlined, context.tr('place_of_birth'), isDark),
             const SizedBox(height: 8),
-            _buildTextField(
+            LocationAutocompleteField(
               controller: _place2Controller,
-              hintText: 'Delhi, India',
+              label: '',
+              hint: 'Delhi, India',
               isDark: isDark,
+              onLocationSelected: (loc) {
+                setState(() {
+                  _location2 = loc;
+                });
+              },
               validator: (val) => (val == null || val.trim().isEmpty)
                   ? 'Please enter place of birth'
                   : null,
@@ -584,12 +674,19 @@ class _MatchingScreenState extends State<MatchingScreen> {
   // SCREEN 4: MATCHING RESULT SCREEN
   // ==========================================
   Widget _buildResultScreen(bool isDark) {
-    final name1 = _name1Controller.text.isNotEmpty
-        ? _name1Controller.text.split(' ').first
-        : 'AARAV';
-    final name2 = _name2Controller.text.isNotEmpty
-        ? _name2Controller.text.split(' ').first
-        : 'PRIYA';
+    final apiProvider = Provider.of<AstrologyApiProvider>(context);
+    final matchResult = apiProvider.matchResult;
+
+    final name1 = (matchResult?.profile1Name != null && matchResult!.profile1Name!.isNotEmpty)
+        ? matchResult.profile1Name!
+        : (_name1Controller.text.isNotEmpty
+            ? _name1Controller.text.trim()
+            : 'Partner 1');
+    final name2 = (matchResult?.profile2Name != null && matchResult!.profile2Name!.isNotEmpty)
+        ? matchResult.profile2Name!
+        : (_name2Controller.text.isNotEmpty
+            ? _name2Controller.text.trim()
+            : 'Partner 2');
 
     final goldColor = AppColors.getGold(isDark);
     final textPrimary = AppColors.getTextPrimary(isDark);
@@ -672,38 +769,9 @@ class _MatchingScreenState extends State<MatchingScreen> {
           _buildScoreVisualCard(name1, name2, isDark),
           const SizedBox(height: 20),
 
-          // 4. Description block
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: isDark ? Colors.white.withValues(alpha: 0.05) : const Color(0xF5FFFFFF),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(
-                color: isDark ? Colors.white24 : goldColor.withValues(alpha: 0.35),
-                width: 1.0,
-              ),
-              boxShadow: isDark
-                  ? null
-                  : [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.04),
-                        blurRadius: 8,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
-            ),
-            child: Text(
-              'This pairing shows strong cosmic alignment — deep emotional resonance, complementary temperaments, and a shared spiritual path.',
-              style: GoogleFonts.roboto(
-                color: isDark ? Colors.white : AppColors.textPrimaryLight,
-                fontSize: 13,
-                height: 1.4,
-                shadows: textShadows,
-              ),
-            ),
-          ),
-          const SizedBox(height: 32),
+          // 4. Dynamic Compatibility Analysis (Cosmic Verdict, Strengths, Challenges)
+          _buildCompatibilityAnalysisCard(matchResult, isDark),
+          const SizedBox(height: 24),
 
           // 5. 36 Guna Matching Table
           _buildGunaMatchingSection(isDark),
@@ -726,6 +794,8 @@ class _MatchingScreenState extends State<MatchingScreen> {
                 _date2Controller.clear();
                 _time2Controller.clear();
                 _place2Controller.clear();
+                _location1 = null;
+                _location2 = null;
               });
             },
             child: Container(
@@ -767,11 +837,199 @@ class _MatchingScreenState extends State<MatchingScreen> {
     );
   }
 
+  Widget _buildCompatibilityAnalysisCard(MatchResultModel? matchResult, bool isDark) {
+    if (matchResult == null) return const SizedBox.shrink();
+
+    final goldColor = AppColors.getGold(isDark);
+    final textShadows = AppColors.getTextShadows(isDark);
+    final textPrimary = isDark ? Colors.white : AppColors.textPrimaryLight;
+    final analysis = matchResult.compatibilityAnalysis;
+    final summaryText = analysis?.overallVerdict ??
+        'This relationship has been evaluated according to Vedic Ashtakoota 36 Guna principles and planetary harmony.';
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Cosmic Verdict Card
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(18),
+          decoration: BoxDecoration(
+            color: isDark ? Colors.white.withValues(alpha: 0.05) : const Color(0xF5FFFFFF),
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(
+              color: isDark ? Colors.white24 : goldColor.withValues(alpha: 0.35),
+              width: 1.0,
+            ),
+            boxShadow: isDark
+                ? null
+                : [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.04),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(Icons.auto_awesome, color: goldColor, size: 16),
+                  const SizedBox(width: 8),
+                  Text(
+                    'COSMIC VERDICT',
+                    style: GoogleFonts.cinzel(
+                      color: goldColor,
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 1.2,
+                      shadows: textShadows,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              Text(
+                summaryText,
+                style: GoogleFonts.roboto(
+                  color: textPrimary,
+                  fontSize: 13,
+                  height: 1.5,
+                  shadows: textShadows,
+                ),
+              ),
+            ],
+          ),
+        ),
+
+        // Cosmic Strengths
+        if (analysis?.strengths != null && analysis!.strengths!.isNotEmpty) ...[
+          const SizedBox(height: 14),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: isDark
+                  ? Colors.green.withValues(alpha: 0.08)
+                  : const Color(0xFFE8F5E9),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: isDark ? Colors.greenAccent.withValues(alpha: 0.35) : const Color(0xFF81C784),
+                width: 1.0,
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(
+                      Icons.star_rounded,
+                      color: isDark ? Colors.greenAccent : const Color(0xFF2E7D32),
+                      size: 18,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      'KEY HARMONIES & STRENGTHS',
+                      style: GoogleFonts.cinzel(
+                        color: isDark ? Colors.greenAccent : const Color(0xFF2E7D32),
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 1.0,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  analysis.strengths!,
+                  style: GoogleFonts.roboto(
+                    color: textPrimary,
+                    fontSize: 12.5,
+                    height: 1.45,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+
+        // Cosmic Challenges
+        if (analysis?.challenges != null && analysis!.challenges!.isNotEmpty) ...[
+          const SizedBox(height: 14),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: isDark
+                  ? Colors.orange.withValues(alpha: 0.08)
+                  : const Color(0xFFFFF3E0),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: isDark ? Colors.orangeAccent.withValues(alpha: 0.35) : const Color(0xFFFFB74D),
+                width: 1.0,
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(
+                      Icons.lightbulb_outline_rounded,
+                      color: isDark ? Colors.orangeAccent : const Color(0xFFE65100),
+                      size: 18,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      'AREAS FOR GROWTH & ATTENTION',
+                      style: GoogleFonts.cinzel(
+                        color: isDark ? Colors.orangeAccent : const Color(0xFFE65100),
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 1.0,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  analysis.challenges!,
+                  style: GoogleFonts.roboto(
+                    color: textPrimary,
+                    fontSize: 12.5,
+                    height: 1.45,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
   Widget _buildScoreVisualCard(String name1, String name2, bool isDark) {
     final goldColor = AppColors.getGold(isDark);
     final textShadows = AppColors.getTextShadows(isDark);
     final textPrimary = isDark ? Colors.white : AppColors.textPrimaryLight;
     final textSecondary = isDark ? Colors.white70 : AppColors.textSecondaryLight;
+
+    final apiProvider = Provider.of<AstrologyApiProvider>(context);
+    final matchResult = apiProvider.matchResult;
+    final totalScore = matchResult?.totalScore ?? 0.0;
+    final maxScore = matchResult?.maxScore ?? 36.0;
+    final percentage = matchResult?.percentage ?? (maxScore > 0 ? (totalScore / maxScore) * 100 : 0.0);
+    final verdict = matchResult?.verdict ?? (totalScore >= 18.0 ? 'EXCELLENT MATCH' : 'AVERAGE MATCH');
+    final isGood = totalScore >= 18.0;
+
+    final moon1 = matchResult?.profile1MoonSign;
+    final moon2 = matchResult?.profile2MoonSign;
+
+    final totalScoreDisplay = totalScore % 1 == 0 ? '${totalScore.toInt()}' : totalScore.toStringAsFixed(1);
+    final maxScoreDisplay = maxScore % 1 == 0 ? '${maxScore.toInt()}' : maxScore.toStringAsFixed(1);
 
     return Container(
       width: double.infinity,
@@ -831,14 +1089,21 @@ class _MatchingScreenState extends State<MatchingScreen> {
                         shadows: textShadows,
                       ),
                       textAlign: TextAlign.center,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
+                    const SizedBox(height: 2),
                     Text(
-                      'Scorpio ♏',
+                      moon1 != null && moon1.isNotEmpty
+                          ? 'Moon: $moon1'
+                          : (_gender1 == 'MALE' ? context.tr('gender_male') : context.tr('gender_female')),
                       style: GoogleFonts.roboto(
                         color: textSecondary,
                         fontSize: 10,
+                        fontWeight: FontWeight.w500,
                         shadows: textShadows,
                       ),
+                      textAlign: TextAlign.center,
                     ),
                   ],
                 ),
@@ -855,10 +1120,12 @@ class _MatchingScreenState extends State<MatchingScreen> {
                         width: 80,
                         height: 80,
                         child: CircularProgressIndicator(
-                          value: 28 / 36,
+                          value: (maxScore > 0 ? totalScore / maxScore : 0.0).clamp(0.0, 1.0),
                           strokeWidth: 6,
                           backgroundColor: isDark ? Colors.white12 : const Color(0x20D4A827),
-                          color: isDark ? const Color(0xFF00FFCC) : const Color(0xFF00BFA5),
+                          color: isGood
+                              ? (isDark ? const Color(0xFF00FFCC) : const Color(0xFF00BFA5))
+                              : (isDark ? Colors.orangeAccent : const Color(0xFFE65100)),
                         ),
                       ),
                     ),
@@ -867,7 +1134,7 @@ class _MatchingScreenState extends State<MatchingScreen> {
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Text(
-                            '28',
+                            totalScoreDisplay,
                             style: GoogleFonts.roboto(
                               color: textPrimary,
                               fontSize: 22,
@@ -876,7 +1143,9 @@ class _MatchingScreenState extends State<MatchingScreen> {
                             ),
                           ),
                           Text(
-                            context.tr('out_of_36'),
+                            percentage > 0
+                                ? '${percentage.toStringAsFixed(1)}%'
+                                : 'out of $maxScoreDisplay',
                             style: GoogleFonts.roboto(
                               color: textSecondary,
                               fontSize: 8,
@@ -923,14 +1192,21 @@ class _MatchingScreenState extends State<MatchingScreen> {
                         shadows: textShadows,
                       ),
                       textAlign: TextAlign.center,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
+                    const SizedBox(height: 2),
                     Text(
-                      'Taurus ♉',
+                      moon2 != null && moon2.isNotEmpty
+                          ? 'Moon: $moon2'
+                          : (_gender2 == 'FEMALE' ? context.tr('gender_female') : context.tr('gender_male')),
                       style: GoogleFonts.roboto(
                         color: textSecondary,
                         fontSize: 10,
+                        fontWeight: FontWeight.w500,
                         shadows: textShadows,
                       ),
+                      textAlign: TextAlign.center,
                     ),
                   ],
                 ),
@@ -941,17 +1217,23 @@ class _MatchingScreenState extends State<MatchingScreen> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
             decoration: BoxDecoration(
-              color: Colors.green.withValues(alpha: isDark ? 0.12 : 0.15),
+              color: isGood
+                  ? Colors.green.withValues(alpha: isDark ? 0.12 : 0.15)
+                  : Colors.orange.withValues(alpha: isDark ? 0.12 : 0.15),
               borderRadius: BorderRadius.circular(16),
               border: Border.all(
-                color: Colors.green.withValues(alpha: 0.4),
+                color: isGood
+                    ? Colors.green.withValues(alpha: 0.4)
+                    : Colors.orange.withValues(alpha: 0.4),
                 width: 1,
               ),
             ),
             child: Text(
-              context.tr('excellent_match'),
+              verdict,
               style: GoogleFonts.cinzel(
-                color: isDark ? Colors.greenAccent : const Color(0xFF2E7D32),
+                color: isGood
+                    ? (isDark ? Colors.greenAccent : const Color(0xFF2E7D32))
+                    : (isDark ? Colors.orangeAccent : const Color(0xFFE65100)),
                 fontSize: 10,
                 fontWeight: FontWeight.bold,
                 letterSpacing: 0.5,
@@ -967,6 +1249,15 @@ class _MatchingScreenState extends State<MatchingScreen> {
     final goldColor = AppColors.getGold(isDark);
     final textShadows = AppColors.getTextShadows(isDark);
     final textPrimary = isDark ? Colors.white : AppColors.textPrimaryLight;
+
+    final apiProvider = Provider.of<AstrologyApiProvider>(context);
+    final matchResult = apiProvider.matchResult;
+    final hasCustomGunas = matchResult != null && matchResult.gunas.isNotEmpty;
+    final totalScore = matchResult?.totalScore ?? 0.0;
+    final maxScore = matchResult?.maxScore ?? 36.0;
+
+    final totalScoreDisplay = totalScore % 1 == 0 ? '${totalScore.toInt()}' : totalScore.toStringAsFixed(1);
+    final maxScoreDisplay = maxScore % 1 == 0 ? '${maxScore.toInt()}' : maxScore.toStringAsFixed(1);
 
     return Container(
       width: double.infinity,
@@ -1002,15 +1293,25 @@ class _MatchingScreenState extends State<MatchingScreen> {
             ),
           ),
           const SizedBox(height: 16),
-          // Guna table rows
-          _buildGunaRow('Varna', 'Spiritual compatibility', 1, 1, isDark),
-          _buildGunaRow('Vasya', 'Power & dominance', 2, 2, isDark),
-          _buildGunaRow('Tara', 'Destiny & fortune', 3, 3, isDark),
-          _buildGunaRow('Yoni', 'Nature & instinct', 4, 3, isDark),
-          _buildGunaRow('Graha Maitri', 'Planet friendship', 5, 4, isDark),
-          _buildGunaRow('Gana', 'Temperament match', 6, 5, isDark),
-          _buildGunaRow('Bhakoot', 'Love & prosperity', 7, 6, isDark),
-          _buildGunaRow('Nadi', 'Health & progeny', 8, 4, isDark),
+          // Dynamic Guna table rows from API
+          if (hasCustomGunas)
+            ...matchResult.gunas.map((g) => _buildGunaRow(
+                  g.name,
+                  g.description ?? '',
+                  g.maxScore,
+                  g.score,
+                  isDark,
+                ))
+          else ...[
+            _buildGunaRow('Varna', 'Spiritual compatibility', 1, 0, isDark),
+            _buildGunaRow('Vasya', 'Power & dominance', 2, 0, isDark),
+            _buildGunaRow('Tara', 'Destiny & fortune', 3, 0, isDark),
+            _buildGunaRow('Yoni', 'Nature & instinct', 4, 0, isDark),
+            _buildGunaRow('Graha Maitri', 'Planet friendship', 5, 0, isDark),
+            _buildGunaRow('Gana', 'Temperament match', 6, 0, isDark),
+            _buildGunaRow('Bhakoot', 'Love & prosperity', 7, 0, isDark),
+            _buildGunaRow('Nadi', 'Health & progeny', 8, 0, isDark),
+          ],
 
           Divider(
             color: isDark ? AppColors.borderDark : const Color(0x20D4A827),
@@ -1031,7 +1332,7 @@ class _MatchingScreenState extends State<MatchingScreen> {
                 ),
               ),
               Text(
-                '28/36',
+                '$totalScoreDisplay/$maxScoreDisplay',
                 style: GoogleFonts.roboto(
                   color: textPrimary,
                   fontSize: 14,
@@ -1046,7 +1347,7 @@ class _MatchingScreenState extends State<MatchingScreen> {
     );
   }
 
-  Widget _buildGunaRow(String gunaName, String desc, int max, int obtained, bool isDark) {
+  Widget _buildGunaRow(String gunaName, String desc, num max, num obtained, bool isDark) {
     Color barColor = isDark ? const Color(0xFF00FFCC) : const Color(0xFF00BFA5);
     if (obtained < max / 2) {
       barColor = AppColors.goldOrange;
@@ -1057,6 +1358,9 @@ class _MatchingScreenState extends State<MatchingScreen> {
     final textShadows = AppColors.getTextShadows(isDark);
     final textPrimary = isDark ? Colors.white : AppColors.textPrimaryLight;
     final textDesc = isDark ? Colors.white54 : AppColors.textMutedLight;
+
+    final maxStr = max % 1 == 0 ? '${max.toInt()}' : max.toStringAsFixed(1);
+    final obtainedStr = obtained % 1 == 0 ? '${obtained.toInt()}' : obtained.toStringAsFixed(1);
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8.0),
@@ -1076,21 +1380,22 @@ class _MatchingScreenState extends State<MatchingScreen> {
                     shadows: textShadows,
                   ),
                 ),
-                Text(
-                  desc,
-                  style: GoogleFonts.roboto(
-                    color: textDesc,
-                    fontSize: 10,
-                    shadows: textShadows,
+                if (desc.isNotEmpty)
+                  Text(
+                    desc,
+                    style: GoogleFonts.roboto(
+                      color: textDesc,
+                      fontSize: 10,
+                      shadows: textShadows,
+                    ),
                   ),
-                ),
               ],
             ),
           ),
           SizedBox(
-            width: 24,
+            width: 28,
             child: Text(
-              '$max',
+              maxStr,
               style: GoogleFonts.roboto(
                 color: isDark ? Colors.white60 : AppColors.textSecondaryLight,
                 fontSize: 12,
@@ -1100,9 +1405,9 @@ class _MatchingScreenState extends State<MatchingScreen> {
             ),
           ),
           SizedBox(
-            width: 24,
+            width: 28,
             child: Text(
-              '$obtained',
+              obtainedStr,
               style: GoogleFonts.roboto(
                 color: barColor,
                 fontSize: 13,
@@ -1122,7 +1427,7 @@ class _MatchingScreenState extends State<MatchingScreen> {
                 color: isDark ? Colors.white12 : const Color(0x20D4A827),
                 child: FractionallySizedBox(
                   alignment: Alignment.centerLeft,
-                  widthFactor: obtained / max.toDouble(),
+                  widthFactor: (max > 0 ? (obtained / max) : 0.0).clamp(0.0, 1.0),
                   child: Container(color: barColor),
                 ),
               ),
@@ -1134,6 +1439,21 @@ class _MatchingScreenState extends State<MatchingScreen> {
   }
 
   Widget _buildMangalDoshaCard(bool isDark) {
+    final apiProvider = Provider.of<AstrologyApiProvider>(context);
+    final matchResult = apiProvider.matchResult;
+    final isCompatible = matchResult?.isMangalCompatible ?? true;
+    final desc = matchResult?.mangalDoshaDescription ??
+        (isCompatible
+            ? context.tr('mangal_compatible_desc')
+            : 'Mangal Dosha present in chart.');
+    final title = isCompatible
+        ? context.tr('mangal_dosha_compatible')
+        : 'Mangal Dosha Detected';
+    final accentColor = isCompatible
+        ? (isDark ? Colors.greenAccent : const Color(0xFF2E7D32))
+        : (isDark ? Colors.orangeAccent : const Color(0xFFE65100));
+    final iconData = isCompatible ? Icons.check_circle_outline : Icons.info_outline;
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
@@ -1141,7 +1461,7 @@ class _MatchingScreenState extends State<MatchingScreen> {
         color: isDark ? Colors.white.withValues(alpha: 0.05) : const Color(0xF5FFFFFF),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: Colors.green.withValues(alpha: 0.35),
+          color: accentColor.withValues(alpha: 0.35),
           width: 1.2,
         ),
         boxShadow: isDark
@@ -1158,8 +1478,8 @@ class _MatchingScreenState extends State<MatchingScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Icon(
-            Icons.check_circle_outline,
-            color: isDark ? Colors.greenAccent : const Color(0xFF2E7D32),
+            iconData,
+            color: accentColor,
             size: 24,
           ),
           const SizedBox(width: 14),
@@ -1168,9 +1488,9 @@ class _MatchingScreenState extends State<MatchingScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  context.tr('mangal_dosha_compatible'),
+                  title,
                   style: GoogleFonts.cinzel(
-                    color: isDark ? Colors.greenAccent : const Color(0xFF2E7D32),
+                    color: accentColor,
                     fontSize: 12,
                     fontWeight: FontWeight.bold,
                     shadows: AppColors.getTextShadows(isDark),
@@ -1178,7 +1498,7 @@ class _MatchingScreenState extends State<MatchingScreen> {
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  context.tr('mangal_compatible_desc'),
+                  desc,
                   style: GoogleFonts.roboto(
                     color: isDark ? Colors.white70 : AppColors.textSecondaryLight,
                     fontSize: 11,

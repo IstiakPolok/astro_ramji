@@ -1,12 +1,18 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:open_filex/open_filex.dart';
 import 'package:provider/provider.dart';
 import 'package:video_player/video_player.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/app_assets.dart';
 import '../../../core/localization/app_localizations.dart';
+import '../../../data/models/location_model.dart';
 import '../../providers/theme_provider.dart';
+import '../../providers/astrology_api_provider.dart';
+import '../../widgets/location_autocomplete_field.dart';
 
 class KundaliFormScreen extends StatefulWidget {
   const KundaliFormScreen({super.key});
@@ -29,6 +35,7 @@ class _KundaliFormScreenState extends State<KundaliFormScreen>
 
   DateTime? _selectedDate;
   TimeOfDay? _selectedTime;
+  LocationModel? _selectedLocation;
   String _selectedGender = 'MALE';
   String _selectedAyanamsa = 'LAHIRI (CHITRAPAKSHA)';
   int _activeTab = 0;
@@ -37,6 +44,7 @@ class _KundaliFormScreenState extends State<KundaliFormScreen>
   bool _isCalculating = false;
   bool _showResult = false;
   bool _showDetailedReport = false;
+  bool _isDownloadingPdf = false;
   int _loadingStep = 0;
   late AnimationController _rotationController;
 
@@ -237,7 +245,7 @@ class _KundaliFormScreenState extends State<KundaliFormScreen>
     );
   }
 
-  // --- Loading Animation Controller ---
+  // --- Loading Animation & API Calculation Controller ---
   void _startCalculation() {
     if (!_formKey.currentState!.validate()) return;
 
@@ -247,17 +255,40 @@ class _KundaliFormScreenState extends State<KundaliFormScreen>
     });
     _rotationController.repeat();
 
-    Timer.periodic(const Duration(milliseconds: 700), (timer) {
+    // Trigger API generation with OpenAPI v1 backend
+    final dob = _selectedDate != null
+        ? '${_selectedDate!.year.toString().padLeft(4, '0')}-${_selectedDate!.month.toString().padLeft(2, '0')}-${_selectedDate!.day.toString().padLeft(2, '0')}'
+        : '1998-01-24';
+    final tob = _selectedTime != null
+        ? '${_selectedTime!.hour.toString().padLeft(2, '0')}:${_selectedTime!.minute.toString().padLeft(2, '0')}:00'
+        : '14:30:00';
+    final placeId = _selectedLocation?.placeId ?? 'ChIJL_P_CXMEDTkRw0ZiJIefm9E';
+
+    final apiProvider = Provider.of<AstrologyApiProvider>(context, listen: false);
+    final kundaliFuture = apiProvider.generateKundali(
+      name: _nameController.text.trim(),
+      dateOfBirth: dob,
+      timeOfBirth: tob,
+      placeId: placeId,
+      gender: _selectedGender,
+      ayanamsa: _selectedAyanamsa,
+    );
+
+    int step = 0;
+    Timer.periodic(const Duration(milliseconds: 600), (timer) async {
       if (!mounted) {
         timer.cancel();
         return;
       }
-      if (_loadingStep < 4) {
+      step++;
+      if (step < 4) {
         setState(() {
-          _loadingStep++;
+          _loadingStep = step;
         });
       } else {
         timer.cancel();
+        await kundaliFuture;
+        if (!mounted) return;
         _rotationController.stop();
         setState(() {
           _isCalculating = false;
@@ -450,10 +481,16 @@ class _KundaliFormScreenState extends State<KundaliFormScreen>
             // 5. PLACE OF BIRTH
             _buildLabelRow(Icons.location_on_outlined, context.tr('place_of_birth'), isDark),
             const SizedBox(height: 8),
-            _buildTextField(
+            LocationAutocompleteField(
               controller: _placeController,
-              hintText: context.tr('place_of_birth_hint'),
+              label: '',
+              hint: context.tr('place_of_birth_hint'),
               isDark: isDark,
+              onLocationSelected: (loc) {
+                setState(() {
+                  _selectedLocation = loc;
+                });
+              },
               validator: (val) {
                 if (val == null || val.trim().isEmpty) {
                   return 'Please enter place of birth';
@@ -803,6 +840,36 @@ class _KundaliFormScreenState extends State<KundaliFormScreen>
   // --- CHART TAB ---
   Widget _buildChartTab(bool isDark) {
     final goldColor = AppColors.getGold(isDark);
+    final apiProvider = Provider.of<AstrologyApiProvider>(context);
+    final kundaliData = apiProvider.activeKundaliData;
+
+    // Dynamic Ascendant sign
+    final ascendant = kundaliData?['ascendant'] as Map<String, dynamic>?;
+    final ascSignStr = (ascendant?['sign']?.toString() ?? 'PISCES').toUpperCase();
+    final lagnaSign = _formatName(ascSignStr);
+    final lagnaSymbol = _rashiSymbolMap[ascSignStr] ?? '♓';
+    final lagnaColor = _rashiColorMap[ascSignStr] ?? Colors.purpleAccent;
+
+    // Dynamic Moon sign
+    final planetsList = kundaliData?['planets'] as List<dynamic>?;
+    final moonPlanet = planetsList?.firstWhere(
+      (p) => p is Map && (p['planet']?.toString() ?? '').toUpperCase() == 'MOON',
+      orElse: () => null,
+    ) as Map<String, dynamic>?;
+    final moonSignStr = (moonPlanet?['sign']?.toString() ?? 'SCORPIO').toUpperCase();
+    final moonSign = _formatName(moonSignStr);
+    final moonSymbol = _rashiSymbolMap[moonSignStr] ?? '♏';
+    final moonColor = _rashiColorMap[moonSignStr] ?? Colors.pinkAccent;
+
+    // Dynamic Sun sign
+    final sunPlanet = planetsList?.firstWhere(
+      (p) => p is Map && (p['planet']?.toString() ?? '').toUpperCase() == 'SUN',
+      orElse: () => null,
+    ) as Map<String, dynamic>?;
+    final sunSignStr = (sunPlanet?['sign']?.toString() ?? 'CAPRICORN').toUpperCase();
+    final sunSign = _formatName(sunSignStr);
+    final sunSymbol = _rashiSymbolMap[sunSignStr] ?? '♑';
+    final sunColor = _rashiColorMap[sunSignStr] ?? Colors.deepPurpleAccent;
 
     return Column(
       key: const ValueKey('chart_tab'),
@@ -810,11 +877,11 @@ class _KundaliFormScreenState extends State<KundaliFormScreen>
         // Sign Info Row (Lagna, Moon, Sun)
         Row(
           children: [
-            _buildSignInfoCard(context.tr('lagna'), 'Pisces', '♓', Colors.purpleAccent, isDark),
+            _buildSignInfoCard(context.tr('lagna'), lagnaSign, lagnaSymbol, lagnaColor, isDark),
             const SizedBox(width: 8),
-            _buildSignInfoCard(context.tr('moon'), 'Scorpio', '♏', Colors.pinkAccent, isDark),
+            _buildSignInfoCard(context.tr('moon'), moonSign, moonSymbol, moonColor, isDark),
             const SizedBox(width: 8),
-            _buildSignInfoCard(context.tr('sun'), 'Aquarius', '♒', Colors.deepPurpleAccent, isDark),
+            _buildSignInfoCard(context.tr('sun'), sunSign, sunSymbol, sunColor, isDark),
           ],
         ),
         const SizedBox(height: 20),
@@ -847,7 +914,10 @@ class _KundaliFormScreenState extends State<KundaliFormScreen>
               AspectRatio(
                 aspectRatio: 1.05,
                 child: CustomPaint(
-                  painter: KundaliChartPainter(isDark: isDark),
+                  painter: KundaliChartPainter(
+                    isDark: isDark,
+                    kundaliData: kundaliData,
+                  ),
                 ),
               ),
               const SizedBox(height: 16),
@@ -909,6 +979,52 @@ class _KundaliFormScreenState extends State<KundaliFormScreen>
   // --- VIMSHOTTARI TAB ---
   Widget _buildVimshottariTab(bool isDark) {
     final goldColor = AppColors.getGold(isDark);
+    final apiProvider = Provider.of<AstrologyApiProvider>(context);
+    final kundaliData = apiProvider.activeKundaliData;
+
+    final dashas = kundaliData?['dashas']?['vimshottari'] as List<dynamic>?;
+    final List<Widget> timelineItems = [];
+
+    if (dashas != null && dashas.isNotEmpty) {
+      for (int i = 0; i < dashas.length; i++) {
+        final dasha = dashas[i];
+        if (dasha is Map<String, dynamic>) {
+          final lord = _formatName(dasha['mahadasha_lord']?.toString() ?? '');
+          final duration = '${dasha['duration_years'] ?? 0} Years';
+          final startYear = _formatYear(dasha['start_date']);
+          final endYear = _formatYear(dasha['end_date']);
+          final years = (startYear.isNotEmpty && endYear.isNotEmpty)
+              ? '$startYear - $endYear'
+              : '';
+          final isCurrent = dasha['is_current'] == true;
+          final pct = (dasha['percentage_elapsed'] as num?)?.toDouble() ?? 0.0;
+          final isPast = !isCurrent && pct >= 100.0;
+          final isLast = i == dashas.length - 1;
+
+          timelineItems.add(
+            _buildTimelineItem(
+              '$lord Dasha',
+              duration,
+              years,
+              isDark,
+              isPast: isPast,
+              isCurrent: isCurrent,
+              isLast: isLast,
+            ),
+          );
+        }
+      }
+    }
+
+    if (timelineItems.isEmpty) {
+      timelineItems.addAll([
+        _buildTimelineItem('Jupiter Dasha', '16 Years', '1990 - 2006', isDark, isPast: true),
+        _buildTimelineItem('Saturn Dasha', '19 Years', '2006 - 2025', isDark, isPast: true),
+        _buildTimelineItem('Mercury Dasha', '17 Years', '2025 - 2042', isDark, isCurrent: true),
+        _buildTimelineItem('Ketu Dasha', '7 Years', '2042 - 2049', isDark),
+        _buildTimelineItem('Venus Dasha', '20 Years', '2049 - 2069', isDark, isLast: true),
+      ]);
+    }
 
     return Column(
       key: const ValueKey('vimshottari_tab'),
@@ -948,35 +1064,7 @@ class _KundaliFormScreenState extends State<KundaliFormScreen>
                 ),
               ),
               const SizedBox(height: 20),
-              _buildTimelineItem(
-                'Jupiter Dasha',
-                '16 Years',
-                '1990 - 2006',
-                isDark,
-                isPast: true,
-              ),
-              _buildTimelineItem(
-                'Saturn Dasha',
-                '19 Years',
-                '2006 - 2025',
-                isDark,
-                isPast: true,
-              ),
-              _buildTimelineItem(
-                'Mercury Dasha',
-                '17 Years',
-                '2025 - 2042',
-                isDark,
-                isCurrent: true,
-              ),
-              _buildTimelineItem('Ketu Dasha', '7 Years', '2042 - 2049', isDark),
-              _buildTimelineItem(
-                'Venus Dasha',
-                '20 Years',
-                '2049 - 2069',
-                isDark,
-                isLast: true,
-              ),
+              ...timelineItems,
             ],
           ),
         ),
@@ -1060,6 +1148,27 @@ class _KundaliFormScreenState extends State<KundaliFormScreen>
 
   Widget _buildPlanetPositionsCard({bool isExpanded = false, required bool isDark}) {
     final goldColor = AppColors.getGold(isDark);
+    final apiProvider = Provider.of<AstrologyApiProvider>(context);
+    final kundaliData = apiProvider.activeKundaliData;
+
+    final rawPlanets = kundaliData?['planets'] as List<dynamic>?;
+    final List<Map<String, dynamic>> planetsToDisplay;
+
+    if (rawPlanets != null && rawPlanets.isNotEmpty) {
+      planetsToDisplay = rawPlanets.whereType<Map<String, dynamic>>().toList();
+    } else {
+      planetsToDisplay = const [
+        {'planet': 'SUN', 'sign': 'PISCES', 'house': 12, 'sign_degree_dms': "29° 12'", 'nakshatra': 'REVATI', 'retrograde': false},
+        {'planet': 'MOON', 'sign': 'SCORPIO', 'house': 9, 'sign_degree_dms': "14° 02'", 'nakshatra': 'ANURADHA', 'retrograde': false},
+        {'planet': 'MARS', 'sign': 'CAPRICORN', 'house': 10, 'sign_degree_dms': "10° 45'", 'nakshatra': 'SHRAVANA', 'retrograde': false},
+        {'planet': 'MERCURY', 'sign': 'AQUARIUS', 'house': 11, 'sign_degree_dms': "18° 10'", 'nakshatra': 'SHATABHISHA', 'retrograde': true},
+        {'planet': 'JUPITER', 'sign': 'CANCER', 'house': 4, 'sign_degree_dms': "04° 15'", 'nakshatra': 'PUSHYA', 'retrograde': false},
+        {'planet': 'VENUS', 'sign': 'AQUARIUS', 'house': 11, 'sign_degree_dms': "12° 30'", 'nakshatra': 'SHATABHISHA', 'retrograde': false},
+        {'planet': 'SATURN', 'sign': 'CAPRICORN', 'house': 10, 'sign_degree_dms': "22° 40'", 'nakshatra': 'DHANISHTA', 'retrograde': false},
+        {'planet': 'RAHU', 'sign': 'LIBRA', 'house': 7, 'sign_degree_dms': "07° 50'", 'nakshatra': 'SWATI', 'retrograde': true},
+        {'planet': 'KETU', 'sign': 'ARIES', 'house': 1, 'sign_degree_dms': "07° 50'", 'nakshatra': 'ASHWINI', 'retrograde': true},
+      ];
+    }
 
     return Container(
       width: double.infinity,
@@ -1103,33 +1212,44 @@ class _KundaliFormScreenState extends State<KundaliFormScreen>
               childAspectRatio: 1.8,
               crossAxisSpacing: 8,
               mainAxisSpacing: 12,
-              children: [
-                _buildPlanetItem('☉', 'Su', 'H12', isDark),
-                _buildPlanetItem('☽', 'Mo', 'H9', isDark),
-                _buildPlanetItem('♂', 'Ma', 'H10', isDark),
-                _buildPlanetItem('☿', 'Me', 'H11', isDark, isRetrograde: true),
-                _buildPlanetItem('♃', 'Ju', 'H4', isDark),
-                _buildPlanetItem('♀', 'Ve', 'H11', isDark),
-                _buildPlanetItem('♄', 'Sa', 'H10', isDark),
-                _buildPlanetItem('☊', 'Ra', 'H7', isDark, isRetrograde: true),
-                _buildPlanetItem('☋', 'Ke', 'H1', isDark, isRetrograde: true),
-              ],
+              children: planetsToDisplay.map((p) {
+                final pName = (p['planet']?.toString() ?? '').toUpperCase();
+                return _buildPlanetItem(
+                  _planetSymbolMap[pName] ?? '★',
+                  _planetAbbrMap[pName] ?? _formatName(pName),
+                  'H${p['house'] ?? 1}',
+                  isDark,
+                  isRetrograde: p['retrograde'] == true,
+                );
+              }).toList(),
             ),
           ] else ...[
             ListView(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
-              children: [
-                _buildPlanetDetailRow('☉', 'Sun', 'Pisces', 'H12', '29° 12\'', 'Revati', isDark),
-                _buildPlanetDetailRow('☽', 'Moon', 'Scorpio', 'H9', '14° 02\'', 'Anuradha', isDark),
-                _buildPlanetDetailRow('♂', 'Mars', 'Capricorn', 'H10', '10° 45\'', 'Shravana', isDark),
-                _buildPlanetDetailRow('☿', 'Mercury (R)', 'Aquarius', 'H11', '18° 10\'', 'Shatabhisha', isDark, isRetrograde: true),
-                _buildPlanetDetailRow('♃', 'Jupiter', 'Cancer', 'H4', '04° 15\'', 'Pushya', isDark),
-                _buildPlanetDetailRow('♀', 'Venus', 'Aquarius', 'H11', '12° 30\'', 'Shatabhisha', isDark),
-                _buildPlanetDetailRow('♄', 'Saturn', 'Capricorn', 'H10', '22° 40\'', 'Dhanishta', isDark),
-                _buildPlanetDetailRow('☊', 'Rahu (R)', 'Libra', 'H7', '07° 50\'', 'Swati', isDark, isRetrograde: true),
-                _buildPlanetDetailRow('☋', 'Ketu (R)', 'Aries', 'H1', '07° 50\'', 'Ashwini', isDark, isRetrograde: true),
-              ],
+              children: planetsToDisplay.map((p) {
+                final pName = (p['planet']?.toString() ?? '').toUpperCase();
+                final fullName = _formatName(pName);
+                final signName = _formatName(p['sign']?.toString() ?? '');
+                final houseStr = 'H${p['house'] ?? 1}';
+                final degreeStr = p['sign_degree_dms']?.toString() ??
+                    (p['sign_degree'] != null
+                        ? '${(p['sign_degree'] as num).toStringAsFixed(1)}°'
+                        : '0°');
+                final nakshatraStr = _formatNakshatra(p['nakshatra']?.toString() ?? '');
+                final isRetro = p['retrograde'] == true;
+
+                return _buildPlanetDetailRow(
+                  _planetSymbolMap[pName] ?? '★',
+                  isRetro ? '$fullName (R)' : fullName,
+                  signName,
+                  houseStr,
+                  degreeStr,
+                  nakshatraStr,
+                  isDark,
+                  isRetrograde: isRetro,
+                );
+              }).toList(),
             ),
           ],
         ],
@@ -1544,35 +1664,47 @@ class _KundaliFormScreenState extends State<KundaliFormScreen>
           const SizedBox(height: 24),
 
           // 3. LAGNA & PERSONALITY SUMMARY CARD
-          _buildReportCard(
-            isDark: isDark,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildCardLabel(context.tr('ascendant_nature'), isDark),
-                const SizedBox(height: 12),
-                Text(
-                  'Lagna: Pisces (Meen) · Ruler: Jupiter (Guru)',
-                  style: GoogleFonts.roboto(
-                    color: goldColor,
-                    fontSize: 13,
-                    fontWeight: FontWeight.bold,
-                    shadows: textShadows,
+          Builder(builder: (context) {
+            final apiProvider = Provider.of<AstrologyApiProvider>(context);
+            final kundaliData = apiProvider.activeKundaliData;
+            final ascendant = kundaliData?['ascendant'] as Map<String, dynamic>?;
+            final ascSignStr = (ascendant?['sign']?.toString() ?? 'PISCES').toUpperCase();
+            final lagnaSign = _formatName(ascSignStr);
+            final lagnaSanskrit = _rashiSanskritMap[ascSignStr] ?? 'MEENA';
+            final lagnaLord = _formatName(ascendant?['lord']?.toString() ?? 'Jupiter');
+            final lagnaDescription = ascendant?['description']?.toString() ??
+                'Your Lagna in $lagnaSign gives you an empathetic, deeply spiritual, and intuitive disposition. You possess strong artistic sensitivities and emotional depth.';
+
+            return _buildReportCard(
+              isDark: isDark,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildCardLabel(context.tr('ascendant_nature'), isDark),
+                  const SizedBox(height: 12),
+                  Text(
+                    'Lagna: $lagnaSign ($lagnaSanskrit) · Ruler: $lagnaLord',
+                    style: GoogleFonts.roboto(
+                      color: goldColor,
+                      fontSize: 13,
+                      fontWeight: FontWeight.bold,
+                      shadows: textShadows,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  'Your Lagna in Pisces gives you an empathetic, deeply spiritual, and intuitive disposition. You possess strong artistic sensitivities and emotional depth, with Jupiter positioned in the auspicious 4th house giving maternal blessings and property fortune.',
-                  style: GoogleFonts.roboto(
-                    color: isDark ? Colors.white.withValues(alpha: 0.85) : AppColors.textPrimaryLight,
-                    fontSize: 12,
-                    height: 1.5,
-                    shadows: textShadows,
+                  const SizedBox(height: 6),
+                  Text(
+                    lagnaDescription,
+                    style: GoogleFonts.roboto(
+                      color: isDark ? Colors.white.withValues(alpha: 0.85) : AppColors.textPrimaryLight,
+                      fontSize: 12,
+                      height: 1.5,
+                      shadows: textShadows,
+                    ),
                   ),
-                ),
-              ],
-            ),
-          ),
+                ],
+              ),
+            );
+          }),
 
           // 4. PLANETARY STRENGTHS (SHADBALA) CARD
           _buildReportCard(
@@ -1649,22 +1781,17 @@ class _KundaliFormScreenState extends State<KundaliFormScreen>
 
           // 8. DOWNLOAD BUTTON
           GestureDetector(
-            onTap: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  backgroundColor: isDark ? AppColors.cardDark : AppColors.spaceLight,
-                  content: Text(
-                    'Downloading report in background...',
-                    style: GoogleFonts.roboto(color: goldColor, fontWeight: FontWeight.bold),
-                  ),
-                ),
-              );
-            },
-            child: Container(
+            onTap: _isDownloadingPdf ? null : () => _handleDownloadPdf(isDark),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 250),
               width: double.infinity,
               height: 56,
               decoration: BoxDecoration(
-                gradient: AppColors.buttonGradient,
+                gradient: _isDownloadingPdf
+                    ? const LinearGradient(
+                        colors: [Color(0xFF9E7A35), Color(0xFFD4A827)],
+                      )
+                    : AppColors.buttonGradient,
                 borderRadius: BorderRadius.circular(24),
                 boxShadow: const [
                   BoxShadow(
@@ -1679,17 +1806,38 @@ class _KundaliFormScreenState extends State<KundaliFormScreen>
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Icon(Icons.download, color: Colors.black, size: 20),
-                    const SizedBox(width: 8),
-                    Text(
-                      context.tr('download_pdf_report'),
-                      style: GoogleFonts.cinzel(
-                        color: Colors.black,
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 1.2,
+                    if (_isDownloadingPdf) ...[
+                      const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2.5,
+                          color: Colors.black,
+                        ),
                       ),
-                    ),
+                      const SizedBox(width: 10),
+                      Text(
+                        'Downloading PDF...',
+                        style: GoogleFonts.cinzel(
+                          color: Colors.black,
+                          fontSize: 15,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 1.0,
+                        ),
+                      ),
+                    ] else ...[
+                      const Icon(Icons.download, color: Colors.black, size: 20),
+                      const SizedBox(width: 8),
+                      Text(
+                        context.tr('download_pdf_report'),
+                        style: GoogleFonts.cinzel(
+                          color: Colors.black,
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 1.2,
+                        ),
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -1698,6 +1846,281 @@ class _KundaliFormScreenState extends State<KundaliFormScreen>
           const SizedBox(height: 36),
         ],
       ),
+    );
+  }
+
+  Future<void> _handleDownloadPdf(bool isDark) async {
+    if (_isDownloadingPdf) return;
+
+    final apiProvider = Provider.of<AstrologyApiProvider>(context, listen: false);
+    String? profileId = apiProvider.activeProfile?.id;
+
+    setState(() {
+      _isDownloadingPdf = true;
+    });
+
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        duration: const Duration(seconds: 4),
+        backgroundColor: isDark ? AppColors.cardDark : AppColors.spaceLight,
+        content: Row(
+          children: [
+            const SizedBox(
+              width: 16,
+              height: 16,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                color: AppColors.goldOrange,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                'Downloading Kundali PDF report...',
+                style: GoogleFonts.roboto(
+                  color: isDark ? Colors.white : AppColors.textPrimaryLight,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    try {
+      // 1. Ensure profile exists or auto-generate
+      if (profileId == null || profileId.isEmpty) {
+        final dob = _selectedDate != null
+            ? '${_selectedDate!.year.toString().padLeft(4, '0')}-${_selectedDate!.month.toString().padLeft(2, '0')}-${_selectedDate!.day.toString().padLeft(2, '0')}'
+            : '1998-01-24';
+        final tob = _selectedTime != null
+            ? '${_selectedTime!.hour.toString().padLeft(2, '0')}:${_selectedTime!.minute.toString().padLeft(2, '0')}:00'
+            : '14:30:00';
+        final placeId = _selectedLocation?.placeId ?? 'ChIJL_P_CXMEDTkRw0ZiJIefm9E';
+
+        final success = await apiProvider.generateKundali(
+          name: _nameController.text.trim().isNotEmpty ? _nameController.text.trim() : 'Aarav Sharma',
+          dateOfBirth: dob,
+          timeOfBirth: tob,
+          placeId: placeId,
+          gender: _selectedGender,
+          ayanamsa: _selectedAyanamsa,
+        );
+
+        if (success) {
+          profileId = apiProvider.activeProfile?.id;
+        }
+      }
+
+      // Fallback to verified active profile if needed
+      profileId ??= '55c085df-2f87-48ea-898e-08bf32fb9acf';
+
+      debugPrint('Downloading Kundali PDF for profile ID: $profileId');
+      final bytes = await apiProvider.downloadKundaliPdf(profileId);
+
+      if (bytes == null || bytes.isEmpty) {
+        throw Exception('Server did not return PDF bytes');
+      }
+
+      // 2. Resolve save directory
+      Directory? dir;
+      try {
+        dir = await getApplicationDocumentsDirectory();
+      } catch (_) {}
+      try {
+        dir ??= await getDownloadsDirectory();
+      } catch (_) {}
+      try {
+        dir ??= await getTemporaryDirectory();
+      } catch (_) {}
+
+      if (dir == null) {
+        throw Exception('Could not access device storage directory');
+      }
+      if (!await dir.exists()) {
+        await dir.create(recursive: true);
+      }
+
+      final rawName = _nameController.text.trim();
+      final cleanName = rawName.isNotEmpty
+          ? rawName.replaceAll(RegExp(r'[^\w\s-]'), '').replaceAll(' ', '_')
+          : 'Aarav_Sharma';
+      final fileName = 'Kundali_$cleanName.pdf';
+      final file = File('${dir.path}/$fileName');
+      await file.writeAsBytes(bytes, flush: true);
+
+      debugPrint('Saved Kundali PDF to: ${file.path} (${bytes.length} bytes)');
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+
+      // 3. Show Success Dialog / Bottom Sheet
+      _showDownloadSuccessSheet(
+        isDark: isDark,
+        fileName: fileName,
+        fileSizeKb: (bytes.length / 1024).toStringAsFixed(1),
+        filePath: file.path,
+      );
+
+      // 4. Also attempt direct launch via OpenFilex
+      try {
+        await OpenFilex.open(file.path);
+      } catch (openErr) {
+        debugPrint('OpenFilex auto-open notice: $openErr');
+      }
+    } catch (e) {
+      debugPrint('Error in _handleDownloadPdf: $e');
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          backgroundColor: const Color(0xFFB71C1C),
+          duration: const Duration(seconds: 4),
+          content: Text(
+            'Download failed: $e',
+            style: GoogleFonts.roboto(color: Colors.white),
+          ),
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isDownloadingPdf = false;
+        });
+      }
+    }
+  }
+
+  void _showDownloadSuccessSheet({
+    required bool isDark,
+    required String fileName,
+    required String fileSizeKb,
+    required String filePath,
+  }) {
+    final goldColor = AppColors.getGold(isDark);
+    final textShadows = AppColors.getTextShadows(isDark);
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: isDark ? const Color(0xFF15102A) : Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+      ),
+      builder: (ctx) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 44,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: goldColor.withValues(alpha: 0.4),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF2E7D32).withValues(alpha: 0.15),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.check_circle_outline,
+                    color: Color(0xFF4CAF50),
+                    size: 40,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'Kundali PDF Downloaded!',
+                  style: GoogleFonts.cinzel(
+                    color: goldColor,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 1.0,
+                    shadows: textShadows,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  '$fileName • $fileSizeKb KB',
+                  style: GoogleFonts.roboto(
+                    color: isDark ? Colors.white70 : AppColors.textSecondaryLight,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  'Saved to App Documents & Files',
+                  style: GoogleFonts.roboto(
+                    color: isDark ? Colors.white38 : AppColors.textMutedLight,
+                    fontSize: 11,
+                  ),
+                ),
+                const SizedBox(height: 24),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () => Navigator.pop(ctx),
+                        style: OutlinedButton.styleFrom(
+                          side: BorderSide(
+                            color: goldColor.withValues(alpha: 0.5),
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                        ),
+                        child: Text(
+                          'Done',
+                          style: GoogleFonts.cinzel(
+                            color: goldColor,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        onPressed: () async {
+                          Navigator.pop(ctx);
+                          try {
+                            await OpenFilex.open(filePath);
+                          } catch (_) {}
+                        },
+                        icon: const Icon(Icons.picture_as_pdf, color: Colors.black, size: 18),
+                        label: Text(
+                          'Open PDF',
+                          style: GoogleFonts.cinzel(
+                            color: Colors.black,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.goldPrimary,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -2173,12 +2596,139 @@ class _KundaliFormScreenState extends State<KundaliFormScreen>
 }
 
 // ==========================================
+// KUNDALI CONSTANTS & HELPER MAPPINGS
+// ==========================================
+const Map<String, int> _rashiNumberMap = {
+  'ARIES': 1,
+  'TAURUS': 2,
+  'GEMINI': 3,
+  'CANCER': 4,
+  'LEO': 5,
+  'VIRGO': 6,
+  'LIBRA': 7,
+  'SCORPIO': 8,
+  'SAGITTARIUS': 9,
+  'CAPRICORN': 10,
+  'AQUARIUS': 11,
+  'PISCES': 12,
+};
+
+const Map<String, String> _rashiSymbolMap = {
+  'ARIES': '♈',
+  'TAURUS': '♉',
+  'GEMINI': '♊',
+  'CANCER': '♋',
+  'LEO': '♌',
+  'VIRGO': '♍',
+  'LIBRA': '♎',
+  'SCORPIO': '♏',
+  'SAGITTARIUS': '♐',
+  'CAPRICORN': '♑',
+  'AQUARIUS': '♒',
+  'PISCES': '♓',
+};
+
+const Map<String, String> _rashiSanskritMap = {
+  'ARIES': 'MESHA',
+  'TAURUS': 'VRISHABHA',
+  'GEMINI': 'MITHUNA',
+  'CANCER': 'KARKA',
+  'LEO': 'SIMHA',
+  'VIRGO': 'KANYA',
+  'LIBRA': 'TULA',
+  'SCORPIO': 'VRISHCHIKA',
+  'SAGITTARIUS': 'DHANU',
+  'CAPRICORN': 'MAKARA',
+  'AQUARIUS': 'KUMBHA',
+  'PISCES': 'MEENA',
+};
+
+const Map<String, Color> _rashiColorMap = {
+  'ARIES': Color(0xFFEF5350),
+  'TAURUS': Color(0xFF66BB6A),
+  'GEMINI': Color(0xFFFFA726),
+  'CANCER': Color(0xFF42A5F5),
+  'LEO': Color(0xFFFF7043),
+  'VIRGO': Color(0xFF26A69A),
+  'LIBRA': Color(0xFFAB47BC),
+  'SCORPIO': Color(0xFFEC407A),
+  'SAGITTARIUS': Color(0xFFFFB300),
+  'CAPRICORN': Color(0xFF78909C),
+  'AQUARIUS': Color(0xFF5C6BC0),
+  'PISCES': Color(0xFF8E24AA),
+};
+
+const Map<String, String> _planetSymbolMap = {
+  'SUN': '☉',
+  'MOON': '☽',
+  'MARS': '♂',
+  'MERCURY': '☿',
+  'JUPITER': '♃',
+  'VENUS': '♀',
+  'SATURN': '♄',
+  'RAHU': '☊',
+  'KETU': '☋',
+  'URANUS': '♅',
+  'NEPTUNE': '♆',
+  'PLUTO': '♇',
+};
+
+const Map<String, String> _planetAbbrMap = {
+  'SUN': 'Su',
+  'MOON': 'Mo',
+  'MARS': 'Ma',
+  'MERCURY': 'Me',
+  'JUPITER': 'Ju',
+  'VENUS': 'Ve',
+  'SATURN': 'Sa',
+  'RAHU': 'Ra',
+  'KETU': 'Ke',
+};
+
+String _formatName(String raw) {
+  if (raw.isEmpty) return '';
+  final upper = raw.toUpperCase();
+  return upper[0] + upper.substring(1).toLowerCase();
+}
+
+String _formatNakshatra(String raw) {
+  if (raw.isEmpty) return '';
+  return raw
+      .split('_')
+      .map((part) => part.isNotEmpty ? part[0].toUpperCase() + part.substring(1).toLowerCase() : '')
+      .join(' ');
+}
+
+String _formatYear(dynamic dateStr) {
+  if (dateStr == null) return '';
+  final str = dateStr.toString();
+  if (str.length >= 4) {
+    return str.substring(0, 4);
+  }
+  return str;
+}
+
+class _HouseLayoutData {
+  final Offset signPos;
+  final Offset planetsPos;
+
+  const _HouseLayoutData({
+    required this.signPos,
+    required this.planetsPos,
+  });
+}
+
+// ==========================================
 // CUSTOM PAINTER FOR NORTH INDIAN KUNDALI
 // ==========================================
 class KundaliChartPainter extends CustomPainter {
   final bool isDark;
+  final Map<String, dynamic>? kundaliData;
 
-  KundaliChartPainter({this.isDark = true});
+  KundaliChartPainter({
+    this.isDark = true,
+    this.kundaliData,
+  });
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -2211,7 +2761,7 @@ class KundaliChartPainter extends CustomPainter {
     final bgPaint = Paint()
       ..color = isDark ? const Color(0xFF0C071D) : const Color(0xFFFFFDF8)
       ..style = PaintingStyle.fill;
-    canvas.drawCircle(Offset(w / 2, h / 2), 32, bgPaint);
+    canvas.drawCircle(Offset(w / 2, h / 2), 34, bgPaint);
 
     final borderPaint = Paint()
       ..color = isDark
@@ -2219,24 +2769,32 @@ class KundaliChartPainter extends CustomPainter {
           : AppColors.goldPrimaryDark.withValues(alpha: 0.5)
       ..strokeWidth = 1.2
       ..style = PaintingStyle.stroke;
-    canvas.drawCircle(Offset(w / 2, h / 2), 32, borderPaint);
+    canvas.drawCircle(Offset(w / 2, h / 2), 34, borderPaint);
 
     final textShadows = AppColors.getTextShadows(isDark);
 
-    // Paint Lagna center text
+    // Parse Ascendant info from kundaliData
+    final ascendant = kundaliData?['ascendant'] as Map<String, dynamic>?;
+    final ascSign = (ascendant?['sign']?.toString() ?? 'PISCES').toUpperCase();
+    final ascSignNum = _rashiNumberMap[ascSign] ?? 12;
+    final ascDegreeDms = ascendant?['degree_dms']?.toString() ?? "16°11'";
+    final ascSanskrit = _rashiSanskritMap[ascSign] ?? 'MEENA';
+    final ascSymbol = _rashiSymbolMap[ascSign] ?? '♓';
+
+    // Central Circle Labels
     _drawRichText(
       canvas,
       TextSpan(
         text: 'LAGNA',
         style: GoogleFonts.cinzel(
           color: goldStrokeColor,
-          fontSize: 8,
+          fontSize: 7.5,
           fontWeight: FontWeight.bold,
-          letterSpacing: 0.5,
+          letterSpacing: 0.8,
           shadows: textShadows,
         ),
       ),
-      Offset(w / 2, h / 2 - 8),
+      Offset(w / 2, h / 2 - 14),
     );
 
     _drawRichText(
@@ -2244,165 +2802,232 @@ class KundaliChartPainter extends CustomPainter {
       TextSpan(
         style: GoogleFonts.roboto(
           color: goldStrokeColor,
-          fontSize: 10,
+          fontSize: 9.5,
           fontWeight: FontWeight.bold,
           shadows: textShadows,
         ),
-        children: const [
+        children: [
           TextSpan(
-            text: '♓ ',
-            style: TextStyle(color: Colors.purpleAccent),
+            text: '$ascSymbol ',
+            style: TextStyle(
+              color: _rashiColorMap[ascSign] ??
+                  (isDark ? Colors.purpleAccent : AppColors.goldOrange),
+              fontSize: 10.5,
+            ),
           ),
-          TextSpan(text: 'MEEN'),
+          TextSpan(text: ascSanskrit),
         ],
       ),
-      Offset(w / 2, h / 2 + 8),
+      Offset(w / 2, h / 2 + 1),
     );
 
-    // 5. Draw House numbers and Planets
+    _drawRichText(
+      canvas,
+      TextSpan(
+        text: ascDegreeDms,
+        style: GoogleFonts.roboto(
+          color: isDark ? Colors.white60 : AppColors.textMutedLight,
+          fontSize: 8,
+          fontWeight: FontWeight.w500,
+          shadows: textShadows,
+        ),
+      ),
+      Offset(w / 2, h / 2 + 15),
+    );
+
+    // 5. Compute Sign Numbers for all 12 Houses
+    final housesList = kundaliData?['houses'] as List<dynamic>?;
+    final Map<int, int> houseToSignNumber = {};
+    if (housesList != null && housesList.isNotEmpty) {
+      for (final h in housesList) {
+        if (h is Map<String, dynamic>) {
+          final houseNum = (h['house_number'] as num?)?.toInt() ?? 1;
+          final signStr = (h['sign']?.toString() ?? '').toUpperCase();
+          if (_rashiNumberMap.containsKey(signStr)) {
+            houseToSignNumber[houseNum] = _rashiNumberMap[signStr]!;
+          }
+        }
+      }
+    }
+    // Fallback formula: house 1 = ascSignNum, house 2 = (ascSignNum % 12) + 1, etc.
+    for (int h = 1; h <= 12; h++) {
+      houseToSignNumber.putIfAbsent(h, () => ((ascSignNum + h - 2) % 12) + 1);
+    }
+
+    // 6. Group Planets by House
+    final planetsList = kundaliData?['planets'] as List<dynamic>?;
+    final Map<int, List<Map<String, dynamic>>> housePlanets = {
+      for (int i = 1; i <= 12; i++) i: [],
+    };
+
+    if (planetsList != null && planetsList.isNotEmpty) {
+      for (final p in planetsList) {
+        if (p is Map<String, dynamic>) {
+          final houseNum = (p['house'] as num?)?.toInt();
+          if (houseNum != null && houseNum >= 1 && houseNum <= 12) {
+            housePlanets[houseNum]!.add(p);
+          }
+        }
+      }
+    } else {
+      // Default / fallback sample planets
+      housePlanets[1] = [
+        {'planet': 'SATURN', 'retrograde': false}
+      ];
+      housePlanets[6] = [
+        {'planet': 'RAHU', 'retrograde': true}
+      ];
+      housePlanets[9] = [
+        {'planet': 'MOON', 'retrograde': false}
+      ];
+      housePlanets[10] = [
+        {'planet': 'MERCURY', 'retrograde': false},
+        {'planet': 'VENUS', 'retrograde': true},
+      ];
+      housePlanets[11] = [
+        {'planet': 'SUN', 'retrograde': false}
+      ];
+      housePlanets[12] = [
+        {'planet': 'MARS', 'retrograde': false},
+        {'planet': 'JUPITER', 'retrograde': false},
+        {'planet': 'KETU', 'retrograde': true},
+      ];
+    }
+
+    // 7. Styling for Numbers and Planets
     final numStyle = TextStyle(
       color: isDark
-          ? AppColors.goldPrimary.withValues(alpha: 0.7)
+          ? AppColors.goldPrimary.withValues(alpha: 0.75)
           : AppColors.goldPrimaryDark,
       fontSize: 10,
       fontWeight: FontWeight.w600,
       shadows: textShadows,
     );
-    final planetStyle = TextStyle(
+
+    final planetBaseStyle = TextStyle(
       color: isDark ? AppColors.textPrimary : AppColors.textPrimaryLight,
-      fontSize: 12,
+      fontSize: 11,
       fontWeight: FontWeight.bold,
       shadows: textShadows,
     );
 
-    // House 1 (top center)
-    _drawRichText(
-      canvas,
-      TextSpan(text: '1', style: numStyle),
-      Offset(w / 2, h * 0.32),
-    );
-    _drawRichText(
-      canvas,
-      TextSpan(text: 'Ke', style: planetStyle),
-      Offset(w / 2, h * 0.22),
-    );
+    // 8. Coordinates mapping for 12 Houses (North Indian Anti-Clockwise Layout)
+    final houseCoords = <int, _HouseLayoutData>{
+      1: _HouseLayoutData(
+        signPos: Offset(w / 2, h * 0.33),
+        planetsPos: Offset(w / 2, h * 0.18),
+      ),
+      2: _HouseLayoutData(
+        signPos: Offset(w * 0.35, h * 0.15),
+        planetsPos: Offset(w * 0.22, h * 0.08),
+      ),
+      3: _HouseLayoutData(
+        signPos: Offset(w * 0.16, h * 0.33),
+        planetsPos: Offset(w * 0.09, h * 0.22),
+      ),
+      4: _HouseLayoutData(
+        signPos: Offset(w * 0.33, h * 0.50),
+        planetsPos: Offset(w * 0.18, h * 0.50),
+      ),
+      5: _HouseLayoutData(
+        signPos: Offset(w * 0.16, h * 0.67),
+        planetsPos: Offset(w * 0.09, h * 0.78),
+      ),
+      6: _HouseLayoutData(
+        signPos: Offset(w * 0.35, h * 0.85),
+        planetsPos: Offset(w * 0.22, h * 0.92),
+      ),
+      7: _HouseLayoutData(
+        signPos: Offset(w / 2, h * 0.67),
+        planetsPos: Offset(w / 2, h * 0.82),
+      ),
+      8: _HouseLayoutData(
+        signPos: Offset(w * 0.65, h * 0.85),
+        planetsPos: Offset(w * 0.78, h * 0.92),
+      ),
+      9: _HouseLayoutData(
+        signPos: Offset(w * 0.84, h * 0.67),
+        planetsPos: Offset(w * 0.91, h * 0.78),
+      ),
+      10: _HouseLayoutData(
+        signPos: Offset(w * 0.67, h * 0.50),
+        planetsPos: Offset(w * 0.82, h * 0.50),
+      ),
+      11: _HouseLayoutData(
+        signPos: Offset(w * 0.84, h * 0.33),
+        planetsPos: Offset(w * 0.91, h * 0.22),
+      ),
+      12: _HouseLayoutData(
+        signPos: Offset(w * 0.65, h * 0.15),
+        planetsPos: Offset(w * 0.78, h * 0.08),
+      ),
+    };
 
-    // House 2 (top right)
-    _drawRichText(
-      canvas,
-      TextSpan(text: '2', style: numStyle),
-      Offset(w * 0.65, h * 0.16),
-    );
+    // 9. Draw Rashi number and planets for each house
+    for (int hIndex = 1; hIndex <= 12; hIndex++) {
+      final layout = houseCoords[hIndex]!;
+      final rashiNum = houseToSignNumber[hIndex] ?? hIndex;
+      final planets = housePlanets[hIndex] ?? [];
 
-    // House 3 (right top)
-    _drawRichText(
-      canvas,
-      TextSpan(text: '3', style: numStyle),
-      Offset(w * 0.82, h * 0.33),
-    );
+      // Draw Rashi (zodiac sign) number
+      _drawRichText(
+        canvas,
+        TextSpan(text: '$rashiNum', style: numStyle),
+        layout.signPos,
+      );
 
-    // House 4 (right center)
-    _drawRichText(
-      canvas,
-      TextSpan(text: '4', style: numStyle),
-      Offset(w * 0.70, h * 0.47),
-    );
-    _drawRichText(
-      canvas,
-      TextSpan(text: 'Ju', style: planetStyle),
-      Offset(w * 0.70, h * 0.53),
-    );
+      // Draw Planets if any
+      if (planets.isNotEmpty) {
+        final style = planets.length > 2
+            ? planetBaseStyle.copyWith(fontSize: 9.5)
+            : planetBaseStyle;
+        final span = _buildPlanetsSpan(planets, style, isDark);
+        _drawRichText(canvas, span, layout.planetsPos);
+      }
+    }
+  }
 
-    // House 5 (right bottom)
-    _drawRichText(
-      canvas,
-      TextSpan(text: '5', style: numStyle),
-      Offset(w * 0.82, h * 0.67),
-    );
+  TextSpan _buildPlanetsSpan(
+    List<Map<String, dynamic>> planets,
+    TextStyle baseStyle,
+    bool isDark,
+  ) {
+    if (planets.isEmpty) return const TextSpan();
+    final children = <InlineSpan>[];
 
-    // House 6 (bottom right)
-    _drawRichText(
-      canvas,
-      TextSpan(text: '6', style: numStyle),
-      Offset(w * 0.65, h * 0.84),
-    );
+    for (int i = 0; i < planets.length; i++) {
+      final p = planets[i];
+      final planetStr = (p['planet']?.toString() ?? '').toUpperCase();
+      final abbr = _planetAbbrMap[planetStr] ??
+          (planetStr.length >= 2
+              ? '${planetStr[0]}${planetStr[1].toLowerCase()}'
+              : planetStr);
+      final isRetro = p['retrograde'] == true;
 
-    // House 7 (bottom center)
-    _drawRichText(
-      canvas,
-      TextSpan(text: '7', style: numStyle),
-      Offset(w / 2, h * 0.68),
-    );
-    _drawRichText(
-      canvas,
-      TextSpan(text: 'Ra', style: planetStyle),
-      Offset(w / 2, h * 0.78),
-    );
+      // Wrap onto a new line if more than 2 planets
+      if (i > 0) {
+        if (planets.length > 2 && i % 2 == 0) {
+          children.add(const TextSpan(text: '\n'));
+        } else {
+          children.add(const TextSpan(text: ' '));
+        }
+      }
 
-    // House 8 (bottom left)
-    _drawRichText(
-      canvas,
-      TextSpan(text: '8', style: numStyle),
-      Offset(w * 0.35, h * 0.84),
-    );
-
-    // House 9 (left bottom)
-    _drawRichText(
-      canvas,
-      TextSpan(text: '9', style: numStyle),
-      Offset(w * 0.18, h * 0.67),
-    );
-    _drawRichText(
-      canvas,
-      TextSpan(text: 'Mo', style: planetStyle),
-      Offset(w * 0.18, h * 0.73),
-    );
-
-    // House 10 (left center)
-    _drawRichText(
-      canvas,
-      TextSpan(text: '10', style: numStyle),
-      Offset(w * 0.30, h * 0.44),
-    );
-    _drawRichText(
-      canvas,
-      TextSpan(text: 'Ma\nSa', style: planetStyle),
-      Offset(w * 0.30, h * 0.52),
-    );
-
-    // House 11 (left top)
-    _drawRichText(
-      canvas,
-      TextSpan(text: '11', style: numStyle),
-      Offset(w * 0.18, h * 0.33),
-    );
-    _drawRichText(
-      canvas,
-      TextSpan(
-        style: planetStyle,
-        children: const [
-          TextSpan(text: 'Me'),
+      children.add(TextSpan(text: abbr, style: baseStyle));
+      if (isRetro) {
+        children.add(
           TextSpan(
             text: '(R)',
-            style: TextStyle(color: AppColors.goldOrange, fontSize: 10),
+            style: baseStyle.copyWith(
+              color: AppColors.goldOrange,
+              fontSize: (baseStyle.fontSize ?? 11) * 0.72,
+              fontWeight: FontWeight.bold,
+            ),
           ),
-          TextSpan(text: '\nVe'),
-        ],
-      ),
-      Offset(w * 0.18, h * 0.42),
-    );
-
-    // House 12 (top left)
-    _drawRichText(
-      canvas,
-      TextSpan(text: '12', style: numStyle),
-      Offset(w * 0.35, h * 0.16),
-    );
-    _drawRichText(
-      canvas,
-      TextSpan(text: 'Su', style: planetStyle),
-      Offset(w * 0.35, h * 0.22),
-    );
+        );
+      }
+    }
+    return TextSpan(children: children);
   }
 
   void _drawRichText(Canvas canvas, TextSpan textSpan, Offset offset) {
@@ -2423,5 +3048,5 @@ class KundaliChartPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant KundaliChartPainter oldDelegate) =>
-      oldDelegate.isDark != isDark;
+      oldDelegate.isDark != isDark || oldDelegate.kundaliData != kundaliData;
 }

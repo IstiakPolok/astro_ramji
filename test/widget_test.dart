@@ -7,20 +7,41 @@ import 'package:astro_ramji/core/constants/app_assets.dart';
 import 'package:astro_ramji/core/localization/app_localizations.dart';
 import 'package:astro_ramji/presentation/providers/theme_provider.dart';
 import 'package:astro_ramji/presentation/providers/language_provider.dart';
+import 'package:astro_ramji/presentation/widgets/theme_picker_sheet.dart';
+import 'package:astro_ramji/presentation/pages/splash/splash_page.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
-  test('ThemeProvider toggles dark and light mode correctly', () {
+  setUp(() {
+    SharedPreferences.setMockInitialValues({});
+  });
+
+  test('ThemeProvider starts with system device preference and allows custom selection', () async {
     final themeProvider = ThemeProvider();
+    await themeProvider.init();
+
+    // Default is ThemeMode.system (Device preference)
+    expect(themeProvider.themeMode, ThemeMode.system);
+    expect(themeProvider.isSystemMode, true);
+
+    // Explicitly set Dark Mode
+    await themeProvider.setThemeMode(ThemeMode.dark);
+    expect(themeProvider.themeMode, ThemeMode.dark);
     expect(themeProvider.isDarkMode, true);
     expect(themeProvider.isLightMode, false);
+    expect(themeProvider.isSystemMode, false);
 
-    themeProvider.toggleTheme();
+    // Explicitly set Light Mode
+    await themeProvider.setThemeMode(ThemeMode.light);
+    expect(themeProvider.themeMode, ThemeMode.light);
     expect(themeProvider.isDarkMode, false);
     expect(themeProvider.isLightMode, true);
+    expect(themeProvider.isSystemMode, false);
 
-    themeProvider.setThemeMode(ThemeMode.dark);
-    expect(themeProvider.isDarkMode, true);
-    expect(themeProvider.isLightMode, false);
+    // Switch back to System (Device preference)
+    await themeProvider.setThemeMode(ThemeMode.system);
+    expect(themeProvider.themeMode, ThemeMode.system);
+    expect(themeProvider.isSystemMode, true);
   });
 
   test('AppColors provides valid tokens for both dark and light modes', () {
@@ -155,5 +176,127 @@ void main() {
     languageProvider.setLanguageCode('kn');
     await tester.pumpAndSettle();
     expect(find.text('ಮುಖಪುಟ'), findsOneWidget);
+  });
+
+  test('ThemeProvider restores persisted theme mode from SharedPreferences', () async {
+    SharedPreferences.setMockInitialValues({'app_theme_mode': 'light'});
+    final themeProvider = ThemeProvider();
+    await themeProvider.init();
+
+    expect(themeProvider.themeMode, ThemeMode.light);
+    expect(themeProvider.isLightMode, true);
+    expect(themeProvider.isDarkMode, false);
+    expect(themeProvider.isSystemMode, false);
+  });
+
+  test('AppLocalizations translates theme keys accurately for all 5 languages', () {
+    final locEn = AppLocalizations(const Locale('en'));
+    final locHi = AppLocalizations(const Locale('hi'));
+    final locTa = AppLocalizations(const Locale('ta'));
+    final locTe = AppLocalizations(const Locale('te'));
+    final locKn = AppLocalizations(const Locale('kn'));
+
+    // English
+    expect(locEn.translate('theme_mode_system'), 'Device Preference (System)');
+    expect(locEn.translate('theme_mode_dark'), 'Dark Mode');
+    expect(locEn.translate('theme_mode_light'), 'Light Mode');
+    expect(locEn.translate('select_theme'), 'Select Theme');
+
+    // Hindi
+    expect(locHi.translate('theme_mode_system'), 'डिवाइस प्राथमिकता (सिस्टम)');
+    expect(locHi.translate('theme_mode_dark'), 'डार्क मोड');
+    expect(locHi.translate('theme_mode_light'), 'लाइट मोड');
+    expect(locHi.translate('select_theme'), 'थीम चुनें');
+
+    // Tamil
+    expect(locTa.translate('theme_mode_system'), 'சாதன விருப்பம் (கணினி)');
+    expect(locTa.translate('theme_mode_dark'), 'டார்க் மோட்');
+    expect(locTa.translate('theme_mode_light'), 'லைட் மோட்');
+    expect(locTa.translate('select_theme'), 'தீமைத் தேர்ந்தெடுக்கவும்');
+
+    // Telugu
+    expect(locTe.translate('theme_mode_system'), 'పరికర ప్రాధాన్యత (సిస్టమ్)');
+    expect(locTe.translate('theme_mode_dark'), 'డార్క్ మోడ్');
+    expect(locTe.translate('theme_mode_light'), 'లైట్ మోడ్');
+    expect(locTe.translate('select_theme'), 'థీమ్‌ను ఎంచుకోండి');
+
+    // Kannada
+    expect(locKn.translate('theme_mode_system'), 'ಸಾಧನದ ಆದ್ಯತೆ (ಸಿಸ್ಟಮ್)');
+    expect(locKn.translate('theme_mode_dark'), 'ಡಾರ್ಕ್ ಮೋಡ್');
+    expect(locKn.translate('theme_mode_light'), 'ಲೈಟ್ ಮೋಡ್');
+    expect(locKn.translate('select_theme'), 'ಥೀಮ್ ಆಯ್ಕೆಮಾಡಿ');
+  });
+
+  testWidgets('ThemePickerSheet opens and switches theme mode', (WidgetTester tester) async {
+    final themeProvider = ThemeProvider();
+    await themeProvider.init();
+
+    await tester.pumpWidget(
+      ChangeNotifierProvider.value(
+        value: themeProvider,
+        child: MaterialApp(
+          locale: const Locale('en'),
+          localizationsDelegates: const [
+            AppLocalizations.delegate,
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
+          home: Scaffold(
+            body: Builder(
+              builder: (context) {
+                return ElevatedButton(
+                  onPressed: () => showThemePickerSheet(context, themeProvider.isDarkMode),
+                  child: const Text('Open Theme Picker'),
+                );
+              },
+            ),
+          ),
+        ),
+      ),
+    );
+
+    // Initial mode is system
+    expect(themeProvider.themeMode, ThemeMode.system);
+
+    // Tap button to open sheet
+    await tester.tap(find.text('Open Theme Picker'));
+    await tester.pumpAndSettle();
+
+    // Verify sheet title and options are visible
+    expect(find.text('Select Theme'), findsOneWidget);
+    expect(find.text('Dark Mode'), findsOneWidget);
+    expect(find.text('Light Mode'), findsOneWidget);
+
+    // Tap Dark Mode
+    await tester.tap(find.text('Dark Mode'));
+    await tester.pumpAndSettle();
+
+    // Verify theme mode switched to dark
+    expect(themeProvider.themeMode, ThemeMode.dark);
+    expect(themeProvider.isDarkMode, true);
+  });
+
+  testWidgets('SplashPage displays saved dark theme on startup', (WidgetTester tester) async {
+    SharedPreferences.setMockInitialValues({'app_theme_mode': 'dark'});
+    final themeProvider = ThemeProvider();
+    await themeProvider.init();
+
+    await tester.pumpWidget(
+      ChangeNotifierProvider.value(
+        value: themeProvider,
+        child: const MaterialApp(
+          home: SplashPage(),
+        ),
+      ),
+    );
+
+    // Verify dark mode is active and dark background color is rendered
+    expect(themeProvider.isDarkMode, true);
+    final scaffold = tester.widget<Scaffold>(find.byType(Scaffold));
+    expect(scaffold.backgroundColor, AppColors.spaceDark);
+
+    // Unmount widget to trigger dispose and timer cleanup
+    await tester.pumpWidget(const SizedBox());
   });
 }

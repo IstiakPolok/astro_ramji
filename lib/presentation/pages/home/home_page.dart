@@ -7,6 +7,8 @@ import '../../../core/constants/app_assets.dart';
 import '../../../core/localization/app_localizations.dart';
 import '../../providers/theme_provider.dart';
 import '../../providers/language_provider.dart';
+import '../../providers/astrology_api_provider.dart';
+import '../../widgets/theme_picker_sheet.dart';
 import '../main_navigation_screen.dart';
 
 class HomePage extends StatefulWidget {
@@ -36,6 +38,14 @@ class _HomePageState extends State<HomePage> {
           _videoController?.play();
         }
       });
+
+    // Fetch Today's Panchang & Astrological forecast via OpenAPI v1
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        Provider.of<AstrologyApiProvider>(context, listen: false)
+            .fetchTodayPanchang();
+      }
+    });
   }
 
   @override
@@ -250,30 +260,44 @@ class _HomePageState extends State<HomePage> {
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              context.tr('greeting_user'),
-              style: GoogleFonts.cinzel(
-                color: goldColor,
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                letterSpacing: 1.5,
-                shadows: textShadows,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              context.tr('home_date'),
-              style: GoogleFonts.roboto(
-                color: isDark ? const Color(0xFFFF4D4D) : const Color(0xFFD32F2F),
-                fontSize: 13,
-                fontWeight: FontWeight.bold,
-                shadows: textShadows,
-              ),
-            ),
-          ],
+        Consumer<AstrologyApiProvider>(
+          builder: (context, api, _) {
+            final userName = api.activeProfile?.name;
+            final displayName = (userName != null && userName.trim().isNotEmpty)
+                ? userName.trim().toUpperCase()
+                : context.tr('greeting_user');
+
+            final now = DateTime.now();
+            const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+            const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+            final dynamicDate = '${days[now.weekday - 1]}, ${now.day} ${months[now.month - 1]} ${now.year}';
+
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  displayName,
+                  style: GoogleFonts.cinzel(
+                    color: goldColor,
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 1.5,
+                    shadows: textShadows,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  dynamicDate,
+                  style: GoogleFonts.roboto(
+                    color: isDark ? const Color(0xFFFF4D4D) : const Color(0xFFD32F2F),
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold,
+                    shadows: textShadows,
+                  ),
+                ),
+              ],
+            );
+          },
         ),
 
         Row(
@@ -326,11 +350,9 @@ class _HomePageState extends State<HomePage> {
             ),
             const SizedBox(width: 8),
 
-            // Quick Theme Toggle Button
+            // Quick Theme Selector Button
             GestureDetector(
-              onTap: () {
-                themeProvider.toggleTheme();
-              },
+              onTap: () => showThemePickerSheet(context, isDark),
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                 decoration: BoxDecoration(
@@ -356,9 +378,22 @@ class _HomePageState extends State<HomePage> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Icon(
-                      isDark ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
+                      themeProvider.themeMode == ThemeMode.system
+                          ? Icons.brightness_auto_rounded
+                          : (isDark ? Icons.dark_mode_rounded : Icons.light_mode_rounded),
                       color: isDark ? AppColors.goldLight : AppColors.goldPrimaryDark,
                       size: 16,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      themeProvider.themeMode == ThemeMode.system
+                          ? 'AUTO'
+                          : (isDark ? 'DARK' : 'LIGHT'),
+                      style: GoogleFonts.cinzel(
+                        color: isDark ? Colors.white : AppColors.textPrimaryLight,
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ],
                 ),
@@ -437,6 +472,9 @@ class _HomePageState extends State<HomePage> {
         ? AppColors.goldPrimary.withValues(alpha: 0.25)
         : const Color(0x40D4A827);
 
+    final apiProvider = Provider.of<AstrologyApiProvider>(context);
+    final panchang = apiProvider.todayPanchang;
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(20),
@@ -460,14 +498,28 @@ class _HomePageState extends State<HomePage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            context.tr('todays_panchang'),
-            style: GoogleFonts.cinzel(
-              color: goldColor,
-              fontSize: 14,
-              fontWeight: FontWeight.bold,
-              letterSpacing: 1.2,
-            ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                context.tr('todays_panchang'),
+                style: GoogleFonts.cinzel(
+                  color: goldColor,
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 1.2,
+                ),
+              ),
+              if (apiProvider.isLoadingToday)
+                const SizedBox(
+                  width: 14,
+                  height: 14,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: AppColors.goldPrimary,
+                  ),
+                ),
+            ],
           ),
           const SizedBox(height: 20),
 
@@ -477,7 +529,7 @@ class _HomePageState extends State<HomePage> {
               Expanded(
                 child: _buildPanchangItem(
                   context.tr('tithi'),
-                  'Shukla Ashtami',
+                  panchang?.tithi ?? 'Shukla Ashtami',
                   const Color(0xFFCE7C2E),
                   isDark,
                 ),
@@ -486,7 +538,7 @@ class _HomePageState extends State<HomePage> {
               Expanded(
                 child: _buildPanchangItem(
                   context.tr('nakshatra'),
-                  'Rohini',
+                  panchang?.nakshatra ?? 'Rohini',
                   const Color(0xFF8B5CF6),
                   isDark,
                 ),
@@ -499,7 +551,7 @@ class _HomePageState extends State<HomePage> {
               Expanded(
                 child: _buildPanchangItem(
                   context.tr('yoga'),
-                  'Indra',
+                  panchang?.yoga ?? 'Indra',
                   const Color(0xFF10B981),
                   isDark,
                 ),
@@ -508,7 +560,7 @@ class _HomePageState extends State<HomePage> {
               Expanded(
                 child: _buildPanchangItem(
                   context.tr('karana'),
-                  'Bava',
+                  panchang?.karana ?? 'Bava',
                   const Color(0xFFEC4899),
                   isDark,
                 ),
@@ -532,19 +584,19 @@ class _HomePageState extends State<HomePage> {
               _buildBottomInfoItem(
                 Icons.wb_sunny_outlined,
                 context.tr('sunrise'),
-                '06:12 AM',
+                panchang?.sunrise ?? '06:12 AM',
                 isDark,
               ),
               _buildBottomInfoItem(
                 Icons.nightlight_outlined,
                 context.tr('sunset'),
-                '06:45 PM',
+                panchang?.sunset ?? '06:45 PM',
                 isDark,
               ),
               _buildBottomInfoItem(
                 Icons.schedule_outlined,
                 context.tr('rahu_kaal'),
-                '04:30 - 06:00',
+                panchang?.rahuKaal ?? '04:30 - 06:00',
                 isDark,
                 valueColor: Colors.redAccent,
               ),
